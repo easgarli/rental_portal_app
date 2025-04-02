@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}İcarədar Paneli{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2>Xoş gəlmisiniz, {{ current_user.name }}</h2>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">TenantScore Balınız</h5>
+                <div id="tenant-score">Yüklənir...</div>
+                <div class="mt-3">
+                    <small class="text-muted">
+                        90-100: Çox etibarlı icarədar<br>
+                        75-89: Yaxşı icarədar<br>
+                        50-74: Orta riskli icarədar<br>
+                        0-49: Yüksək riskli icarədar
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">İcarəyə verəni qiymətləndir</h5>
+                <form id="rate-landlord-form" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="mb-3">
+                        <label for="landlord-id" class="form-label">Mülk sahibi</label>
+                        <select class="form-control" id="landlord-id" required>
+                            <option value="">Mülk sahibi seçin</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Əmlakın real vəziyyəti</label>
+                        <select class="form-control" name="property_accuracy" required>
+                            {% for i in range(5, 0, -1) %}
+                            <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Müqavilə şəffaflığı</label>
+                        <select class="form-control" name="contract_transparency" required>
+                            {% for i in range(5, 0, -1) %}
+                            <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Ünsiyyət və dəstək</label>
+                        <select class="form-control" name="support_communication" required>
+                            {% for i in range(5, 0, -1) %}
+                            <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Təmir və texniki xidmət</label>
+                        <select class="form-control" name="maintenance" required>
+                            {% for i in range(5, 0, -1) %}
+                            <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Gizlilik və hörmət</label>
+                        <select class="form-control" name="privacy_respect" required>
+                            {% for i in range(5, 0, -1) %}
+                            <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Rəy</label>
+                        <textarea class="form-control" name="review" rows="3"></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Qiymətləndir</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Aldığınız Qiymətləndirmələr</h5>
+                <div id="ratings-list">Yüklənir...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Function to get CSRF token from meta tag
+function getCsrfToken() {
+    return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+}
+
+// Fetch tenant score
+fetch(`/tenant-score/{{ current_user.id }}`)
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        let scoreClass = 'text-danger';
+        if (data.total_score >= 90) scoreClass = 'text-success';
+        else if (data.total_score >= 75) scoreClass = 'text-info';
+        else if (data.total_score >= 50) scoreClass = 'text-warning';
+        
+        document.getElementById('tenant-score').innerHTML = `
+            <h3 class="${scoreClass}">${data.total_score.toFixed(1)}/100</h3>
+            <div class="mt-2">
+                <strong>Ödəniş intizamı:</strong> ${data.payment_score.toFixed(1)}/100<br>
+                <strong>Əmlaka münasibət:</strong> ${data.property_score.toFixed(1)}/100<br>
+                <strong>İcarə tarixçəsi:</strong> ${data.rental_history_score.toFixed(1)}/100<br>
+                <strong>Qonşularla münasibət:</strong> ${data.neighbor_score.toFixed(1)}/100<br>
+                <strong>Müqavilə şərtlərinə uyğunluq:</strong> ${data.contract_score.toFixed(1)}/100
+            </div>
+            <p class="mt-2">Son yenilənmə: ${new Date(data.updated_at).toLocaleDateString('az-AZ')}</p>
+        `;
+    })
+    .catch(error => {
+        console.error('Error fetching tenant score:', error);
+        document.getElementById('tenant-score').innerHTML = 'Xəta baş verdi';
+    });
+
+// Format ratings display
+function formatRatingStars(rating) {
+    if (!rating) return '☆☆☆☆☆';
+    return '★'.repeat(rating) + '☆'.repeat(5-rating);
+}
+
+// Fetch ratings
+fetch(`/ratings/{{ current_user.id }}`)
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (!data.length) {
+            document.getElementById('ratings-list').innerHTML = 'Hələ qiymətləndirmə yoxdur';
+            return;
+        }
+
+        const ratingsList = data.map(rating => `
+            <div class="rating-item mb-3 p-3 border rounded">
+                <h6>İcarəyə verən: ${rating.rater_name}</h6>
+                <div class="stars text-warning">${formatRatingStars(rating.rating)}</div>
+                <div class="mt-2">
+                    <strong>Ödəniş intizamı:</strong> ${formatRatingStars(rating.payment_discipline)}<br>
+                    <strong>Əmlaka münasibət:</strong> ${formatRatingStars(rating.property_care)}<br>
+                    <strong>Ünsiyyət:</strong> ${formatRatingStars(rating.communication)}<br>
+                    <strong>Qonşularla münasibət:</strong> ${formatRatingStars(rating.neighbor_relations)}<br>
+                    <strong>Müqavilə şərtlərinə uyğunluq:</strong> ${formatRatingStars(rating.contract_compliance)}
+                </div>
+                <p class="mt-2">${rating.review || ''}</p>
+                <small class="text-muted">Tarix: ${new Date(rating.created_at).toLocaleDateString('az-AZ')}</small>
+            </div>
+        `).join('');
+        document.getElementById('ratings-list').innerHTML = ratingsList;
+    })
+    .catch(error => {
+        console.error('Error fetching ratings:', error);
+        document.getElementById('ratings-list').innerHTML = 'Qiymətləndirmələri yükləmək mümkün olmadı';
+    });
+
+// Fetch landlords list
+fetch('/api/landlords')
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(landlords => {
+        const select = document.getElementById('landlord-id');
+        landlords.forEach(landlord => {
+            const option = document.createElement('option');
+            option.value = landlord.id;
+            option.textContent = `${landlord.name} (${landlord.email})`;
+            select.appendChild(option);
+        });
+    })
+    .catch(error => {
+        console.error('Error fetching landlords:', error);
+        alert('Mülk sahiblərinin siyahısını yükləmək mümkün olmadı');
+    });
+
+// Handle landlord rating form submission
+document.getElementById('rate-landlord-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const data = {
+        landlord_id: document.getElementById('landlord-id').value,
+        property_accuracy: parseInt(formData.get('property_accuracy')),
+        contract_transparency: parseInt(formData.get('contract_transparency')),
+        support_communication: parseInt(formData.get('support_communication')),
+        maintenance: parseInt(formData.get('maintenance')),
+        privacy_respect: parseInt(formData.get('privacy_respect')),
+        review: formData.get('review')
+    };
+    
+    fetch('/rate-landlord', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (!response.ok) {
+            if (response.status === 302 || response.status === 401) {
+                window.location.href = '/login';
+                throw new Error('Sessiyanız başa çatıb. Yenidən daxil olun.');
+            }
+            return response.json().then(err => {
+                throw new Error(err.error || 'Qiymətləndirmə zamanı xəta baş verdi');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        alert('Qiymətləndirmə uğurla əlavə edildi!');
+        this.reset();
+        location.reload();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert(error.message || 'Qiymətləndirməni göndərmək mümkün olmadı');
+    });
+});
+</script>
+{% endblock %} 

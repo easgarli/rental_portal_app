@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 text-center mb-4">
+        <h1>Welcome to Flask Rental Portal</h1>
+        <p class="lead">Connecting tenants and landlords with transparent ratings and history</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">For Tenants</h5>
+                <p class="card-text">Find and rate landlords, manage your tenant score, and build your rental history.</p>
+                {% if not current_user.is_authenticated %}
+                    <a href="/register?role=tenant" class="btn btn-primary">Register as Tenant</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">For Landlords</h5>
+                <p class="card-text">Rate tenants, view tenant scores, and manage your property listings.</p>
+                {% if not current_user.is_authenticated %}
+                    <a href="/register?role=landlord" class="btn btn-primary">Register as Landlord</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">TenantScore System</h5>
+                <p class="card-text">Our unique scoring system helps evaluate tenants based on payment history and ratings.</p>
+                <a href="/about" class="btn btn-secondary">Learn More</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

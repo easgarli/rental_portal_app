@@ -1,0 +1,104 @@
+project:
+  name: "Flask Rental Portal"
+  description: >
+    A web application that connects **tenants and landlords**, allowing them to find one another, 
+    rate each other, and manage rental history transparently. The system includes a **TenantScore**, 
+    which evaluates tenants based on **payment history, ratings from landlords, and creditworthiness**. 
+    The portal integrates a **mutual rating system** where landlords rate tenants (0-5 stars), 
+    and tenants rate landlords (0-5 stars). The project follows a **modular architecture**, ensuring 
+    **scalability, security, and efficient database management**.
+
+  features:
+    - "User authentication and registration (Landlord, Tenant)"
+    - "Mutual rating system (0-5 stars) for tenants and landlords"
+    - "TenantScore system based on credit history and payment records"
+    - "Flask backend with PostgreSQL database and connection pooling"
+    - "REST API endpoints for rating, retrieving scores, and managing users"
+    - "Frontend UI with Bootstrap, HTML, CSS, and JavaScript"
+    - "Database schema designed for efficient data retrieval and analytics"
+    - "Secure API with input validation and error handling"
+    - "Dockerized deployment with Nginx as a reverse proxy"
+    - "Logging and monitoring for debugging and performance tracking"
+
+  tech_stack:
+    backend:
+      framework: "Flask"
+      database: "PostgreSQL"
+      ORM: "SQLAlchemy"
+      authentication: "Flask-Login, Flask-WTF"
+      API: "RESTful endpoints"
+      deployment: "Gunicorn, Nginx"
+    
+    frontend:
+      framework: "HTML, CSS, JavaScript"
+      UI: "Bootstrap-based, responsive design"
+      interactions: "AJAX requests for rating and score updates"
+    
+    devops:
+      database_management: "PostgreSQL with connection pooling"
+      environment_management: ".env for sensitive configurations"
+      logging: "Python logging module for error tracking"
+      security: "SQL injection prevention, rate limiting"
+
+  database:
+    connection_management: "Connection pooling using psycopg2"
+    schema:
+      tables:
+        Users:
+          columns:
+            - "id: Primary Key, UUID"
+            - "name: String, 100 characters"
+            - "role: Enum (tenant, landlord)"
+            - "created_at: Timestamp, default CURRENT_TIMESTAMP"
+
+        Ratings:
+          columns:
+            - "id: Primary Key, UUID"
+            - "rater_id: Foreign Key (Users.id)"
+            - "ratee_id: Foreign Key (Users.id)"
+            - "rating: Integer (0-5)"
+            - "review: Text"
+            - "created_at: Timestamp, default CURRENT_TIMESTAMP"
+
+        TenantScore:
+          columns:
+            - "id: Primary Key, UUID"
+            - "tenant_id: Foreign Key (Users.id)"
+            - "credit_score: Float (0-100)"
+            - "payment_history: JSON (list of past payments)"
+            - "updated_at: Timestamp, default CURRENT_TIMESTAMP"
+
+  routes:
+    authentication:
+      - "POST /register - Register a new tenant or landlord"
+      - "POST /login - User authentication"
+      - "POST /logout - User logout"
+
+    ratings:
+      - "POST /rate-tenant - Landlord rates a tenant (0-5 stars)"
+      - "POST /rate-landlord - Tenant rates a landlord (0-5 stars)"
+      - "GET /ratings/<user_id> - Get all ratings for a user"
+
+    tenant_score:
+      - "GET /tenant-score/<tenant_id> - Retrieve a tenant's score"
+
+  ui:
+    dashboard: "Tenant and Landlord ratings overview"
+    forms:
+      - "Tenant rating form (landlord submits)"
+      - "Landlord rating form (tenant submits)"
+    visualization: "TenantScore displayed as a gauge/meter"
+
+  deployment:
+    steps:
+      - "Containerize with Docker"
+      - "Run Flask app with Gunicorn"
+      - "Deploy using Nginx as reverse proxy"
+      - "Monitor logs and optimize performance"
+
+  testing:
+    - "Unit tests for database models"
+    - "Integration tests for API routes"
+    - "Frontend UI testing with Selenium"
+    - "Load testing to handle multiple ratings at once"
+
