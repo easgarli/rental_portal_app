@@ -1,6 +1,18 @@
 {% extends "base.html" %}
 
-{% block title %}İcarəyə Verən Paneli{% endblock %}
+{% block title %}Mülk Sahibi Paneli{% endblock %}
+
+{% block head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gauge.js/1.3.7/gauge.min.js" integrity="sha512-J0d1VfdfTQfQIzQkKk8l7PWx1X1Ot5RsTkIY9yKuBqZkQi7A3MDjIL0R3GKYGKsKnlk3ZXqyD7mOxN6UHF7dQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<style>
+    /* Ensure the canvas is visible */
+    #landlord-rating-gauge {
+        background: white;
+        width: 250px !important;
+        height: 200px !important;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="row">
@@ -9,99 +21,175 @@
     </div>
 </div>
 
-<div class="row mt-4">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">İcarədarı Qiymətləndir</h5>
-                <form id="rate-tenant-form" method="POST">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                    <div class="mb-3">
-                        <label for="tenant-id" class="form-label">İcarədar</label>
-                        <select class="form-control" id="tenant-id" required>
-                            <option value="">İcarədar seçin</option>
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Ödəniş intizamı</label>
-                        <select class="form-control" name="reliability" required>
-                            {% for i in range(5, 0, -1) %}
-                            <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Əmlaka münasibət</label>
-                        <select class="form-control" name="responsibility" required>
-                            {% for i in range(5, 0, -1) %}
-                            <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Ünsiyyət və əməkdaşlıq</label>
-                        <select class="form-control" name="communication" required>
-                            {% for i in range(5, 0, -1) %}
-                            <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Qonşular və binaya münasibət</label>
-                        <select class="form-control" name="respect" required>
-                            {% for i in range(5, 0, -1) %}
-                            <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Müqavilə şərtlərinə uyğunluq</label>
-                        <select class="form-control" name="compliance" required>
-                            {% for i in range(5, 0, -1) %}
-                            <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Rəy</label>
-                        <textarea class="form-control" name="review" rows="3"></textarea>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary">Qiymətləndir</button>
-                </form>
-            </div>
-        </div>
+<div class="card mt-4">
+    <div class="card-header">
+        <ul class="nav nav-tabs card-header-tabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" data-bs-toggle="tab" href="#rate-tenant" role="tab">İcarədarı qiymətləndir</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#received-ratings" role="tab">Kirayəşinlər tərəfindən qiymətləndirmə</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#property-management" role="tab">Əmlaklarınızın idarə edilməsi</a>
+            </li>
+        </ul>
     </div>
-</div>
 
-<!-- Add this new section for displaying received ratings -->
-<div class="row mt-4">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Aldığınız Qiymətləndirmələr</h5>
-                <div id="ratings-list">Yüklənir...</div>
+    <div class="card-body">
+        <div class="tab-content">
+            <!-- Rate Tenant Tab -->
+            <div class="tab-pane fade show active" id="rate-tenant">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">İcarədarı Qiymətləndir</h5>
+                        <form id="rate-tenant-form" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <div class="mb-3">
+                                <label for="tenant-id" class="form-label">İcarədar</label>
+                                <select class="form-control" id="tenant-id" required>
+                                    <option value="">İcarədarı seçin</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="property-id" class="form-label">Əmlak</label>
+                                <select class="form-control" id="property-id" required>
+                                    <option value="">Əmlakı seçin</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Ödəniş intizamı</label>
+                                <select class="form-control" name="reliability" required>
+                                    {% for i in range(5, 0, -1) %}
+                                    <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Əmlaka münasibət</label>
+                                <select class="form-control" name="responsibility" required>
+                                    {% for i in range(5, 0, -1) %}
+                                    <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Ünsiyyət və əməkdaşlıq</label>
+                                <select class="form-control" name="communication" required>
+                                    {% for i in range(5, 0, -1) %}
+                                    <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Qonşular və binaya münasibət</label>
+                                <select class="form-control" name="respect" required>
+                                    {% for i in range(5, 0, -1) %}
+                                    <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Müqavilə şərtlərinə uyğunluq</label>
+                                <select class="form-control" name="compliance" required>
+                                    {% for i in range(5, 0, -1) %}
+                                    <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Rəy</label>
+                                <textarea class="form-control" name="review" rows="3"></textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">Qiymətləndir</button>
+                        </form>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
-</div>
 
-<!-- Add new section for property management -->
-<div class="row mt-4">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Əmlak İdarəetməsi</h5>
-                <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addPropertyModal">
-                    Yeni Əmlak Əlavə Et
-                </button>
-                <div id="properties-list">Yüklənir...</div>
+            <!-- Received Ratings Tab -->
+            <div class="tab-pane fade" id="received-ratings">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Ümumi Reytinqiniz</h5>
+                                <div id="landlord-rating-container" class="my-4">
+                                    <div class="text-center mb-4">
+                                        <h2 class="display-4" id="average-rating">-</h2>
+                                        <p class="text-muted">Ortalama reytinq (5 üzərindən)</p>
+                                    </div>
+                                    <div class="rating-dimensions">
+                                        <div class="mb-3">
+                                            <label>Əmlakın real vəziyyəti</label>
+                                            <div class="progress">
+                                                <div id="reliability-bar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                            </div>
+                                            <small class="text-end d-block" id="reliability-score">-</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label>Müqavilə şəffaflığı</label>
+                                            <div class="progress">
+                                                <div id="responsibility-bar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                            </div>
+                                            <small class="text-end d-block" id="responsibility-score">-</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label>Ünsiyyət və dəstək</label>
+                                            <div class="progress">
+                                                <div id="communication-bar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                            </div>
+                                            <small class="text-end d-block" id="communication-score">-</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label>Təmir və texniki xidmət</label>
+                                            <div class="progress">
+                                                <div id="compliance-bar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                            </div>
+                                            <small class="text-end d-block" id="compliance-score">-</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label>Gizlilik və hörmət</label>
+                                            <div class="progress">
+                                                <div id="respect-bar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                            </div>
+                                            <small class="text-end d-block" id="respect-score">-</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Kirayəçilərin Rəyləri</h5>
+                                <div id="ratings-list">Yüklənir...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Property Management Tab -->
+            <div class="tab-pane fade" id="property-management">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Əmlaklarınızın idarə edilməsi</h5>
+                        <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addPropertyModal">
+                            Yeni əmlak əlavə et
+                        </button>
+                        <div id="properties-list">Yüklənir...</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -112,7 +200,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Yeni Əmlak Əlavə Et</h5>
+                <h5 class="modal-title">Yeni əmlak əlavə et</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -141,21 +229,41 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bağla</button>
-                <button type="button" class="btn btn-primary" onclick="submitProperty()">Əlavə Et</button>
+                <button type="button" class="btn btn-primary" onclick="submitProperty()">Əlavə et</button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-// Remove this incorrect fetch call - it's causing an error
-// fetch('/rate-tenant', {
-//     method: 'POST',
-//     headers: {
-//         'Content-Type': 'application/json'
-//     },
-//     body: JSON.stringify(data)
-// })
+// Load properties for the current landlord
+function loadLandlordProperties() {
+    fetch('/api/properties/my')
+        .then(response => {
+            if (!response.ok) {
+                if (response.status === 403) {
+                    throw new Error('İcazə yoxdur');
+                }
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(properties => {
+            console.log('Loaded properties:', properties);  // Debug log
+            const select = document.getElementById('property-id');
+            select.innerHTML = '<option value="">Əmlakı seçin</option>';
+            properties.forEach(property => {
+                const option = document.createElement('option');
+                option.value = property.id;
+                option.textContent = `${property.title} (${property.address})`;
+                select.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching properties:', error);
+            alert('Əmlakların siyahısını yükləmək mümkün olmadı: ' + error.message);
+        });
+}
 
 // Fetch tenants list when page loads
 fetch('/api/tenants')
@@ -177,6 +285,8 @@ fetch('/api/tenants')
             option.textContent = `${tenant.name} (${tenant.email})`;
             select.appendChild(option);
         });
+        // Load properties after tenants are loaded
+        loadLandlordProperties();
     })
     .catch(error => {
         console.error('Error fetching tenants:', error);
@@ -190,6 +300,7 @@ function submitTenantRating(event) {
     const formData = new FormData(event.target);
     const data = {
         tenant_id: document.getElementById('tenant-id').value,
+        property_id: document.getElementById('property-id').value,
         reliability: parseInt(formData.get('reliability')),
         responsibility: parseInt(formData.get('responsibility')),
         communication: parseInt(formData.get('communication')),
@@ -197,6 +308,12 @@ function submitTenantRating(event) {
         compliance: parseInt(formData.get('compliance')),
         review: formData.get('review')
     };
+
+    // Validate property selection
+    if (!data.property_id) {
+        alert('Zəhmət olmasa əmlak seçin');
+        return;
+    }
 
     // Validate all rating fields are numbers
     const ratingFields = ['reliability', 'responsibility', 'communication', 
@@ -246,49 +363,78 @@ function formatRatingStars(rating) {
 
 // Fetch ratings for landlord
 function loadReceivedRatings() {
+    console.log('Loading received ratings...');
     fetch(`/ratings/{{ current_user.id }}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
             if (!data.length) {
                 document.getElementById('ratings-list').innerHTML = 'Hələ qiymətləndirmə yoxdur';
+                document.getElementById('average-rating').textContent = '-';
+                ['reliability', 'responsibility', 'communication', 'compliance', 'respect'].forEach(dim => {
+                    document.getElementById(`${dim}-score`).textContent = '-';
+                    document.getElementById(`${dim}-bar`).style.width = '0%';
+                });
                 return;
             }
-
-            const ratingsList = data.map(rating => `
-                <div class="rating-item mb-3 p-3 border rounded">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <h6>İcarədar: ${rating.rater_name}</h6>
-                            ${rating.property ? 
-                                `<small class="text-muted">Əmlak: ${rating.property.title} - ${rating.property.address}</small>` 
-                                : ''}
+            
+            // Calculate averages for each dimension
+            const dimensions = ['reliability', 'responsibility', 'communication', 'compliance', 'respect'];
+            const averages = dimensions.reduce((acc, dim) => {
+                acc[dim] = data.reduce((sum, r) => sum + r[dim], 0) / data.length;
+                return acc;
+            }, {});
+            
+            // Calculate overall average
+            const overallAvg = Object.values(averages).reduce((a, b) => a + b) / 5;
+            
+            // Update the display
+            document.getElementById('average-rating').textContent = overallAvg.toFixed(1);
+            
+            // Update each dimension's display
+            dimensions.forEach(dim => {
+                const score = averages[dim];
+                const percentage = (score / 5) * 100;
+                const bar = document.getElementById(`${dim}-bar`);
+                const scoreElement = document.getElementById(`${dim}-score`);
+                
+                bar.style.width = `${percentage}%`;
+                bar.className = `progress-bar bg-${getRatingColor(score)}`;
+                scoreElement.textContent = score.toFixed(1);
+            });
+            
+            // Display individual ratings
+            const ratingsHtml = data.map(rating => `
+                <div class="rating-item mb-4 p-3 border rounded">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong>İcarədar: ${rating.rater.name}</strong>
+                        <small>Tarix: ${new Date(rating.created_at).toLocaleDateString('az-AZ')}</small>
+                    </div>
+                    <div class="rating-details">
+                        <div>Əmlakın real vəziyyəti: ${formatRatingStars(rating.reliability)}</div>
+                        <div>Müqavilə şəffaflığı: ${formatRatingStars(rating.responsibility)}</div>
+                        <div>Ünsiyyət və dəstək: ${formatRatingStars(rating.communication)}</div>
+                        <div>Təmir və texniki xidmət: ${formatRatingStars(rating.compliance)}</div>
+                        <div>Gizlilik və hörmət: ${formatRatingStars(rating.respect)}</div>
+                    </div>
+                    ${rating.review ? `<div class="mt-2"><strong>Rəy:</strong> ${rating.review}</div>` : ''}
+                    ${rating.property ? `
+                        <div class="mt-2 text-muted">
+                            <small>Əmlak: ${rating.property.title} - ${rating.property.address}</small>
                         </div>
-                        <span class="badge bg-${getRatingColor(rating.rating)}">
-                            ${rating.rating.toFixed(1)} ★
-                        </span>
-                    </div>
-                    <div class="mt-2">
-                        <strong>Ödəniş intizamı:</strong> ${formatRatingStars(rating.reliability)}<br>
-                        <strong>Əmlaka münasibət:</strong> ${formatRatingStars(rating.responsibility)}<br>
-                        <strong>Ünsiyyət:</strong> ${formatRatingStars(rating.communication)}<br>
-                        <strong>Qonşularla münasibət:</strong> ${formatRatingStars(rating.respect)}<br>
-                        <strong>Müqavilə şərtlərinə uyğunluq:</strong> ${formatRatingStars(rating.compliance)}
-                    </div>
-                    ${rating.review ? `<p class="mt-2 fst-italic">"${rating.review}"</p>` : ''}
-                    <small class="text-muted">Tarix: ${new Date(rating.created_at).toLocaleDateString('az-AZ')}</small>
+                    ` : ''}
                 </div>
             `).join('');
             
-            document.getElementById('ratings-list').innerHTML = ratingsList;
+            document.getElementById('ratings-list').innerHTML = ratingsHtml;
         })
         .catch(error => {
             console.error('Error fetching ratings:', error);
             document.getElementById('ratings-list').innerHTML = 'Qiymətləndirmələri yükləmək mümkün olmadı';
+            document.getElementById('average-rating').textContent = '-';
+            ['reliability', 'responsibility', 'communication', 'compliance', 'respect'].forEach(dim => {
+                document.getElementById(`${dim}-score`).textContent = '-';
+                document.getElementById(`${dim}-bar`).style.width = '0%';
+            });
         });
 }
 
@@ -441,8 +587,127 @@ function editProperty(propertyId) {
     alert('Düzəliş funksiyası hazırlanır...');
 }
 
-// Initial loads
-loadProperties();
-loadReceivedRatings();
+// Update tab change event listener to refresh content
+document.querySelectorAll('a[data-bs-toggle="tab"]').forEach(tab => {
+    tab.addEventListener('show.bs.tab', event => {
+        const target = event.target.getAttribute('href');
+        if (target === '#received-ratings') {
+            // Load ratings immediately when tab is shown
+            loadReceivedRatings();
+        } else if (target === '#property-management') {
+            loadProperties();
+        }
+    });
+});
+
+// Load initial data when page loads
+window.addEventListener('load', function() {
+    // Force load ratings if we're on the ratings tab
+    if (document.querySelector('a[href="#received-ratings"]').classList.contains('active')) {
+        loadReceivedRatings();
+    }
+});
+
+// Initialize landlord rating gauge
+function initLandlordRatingGauge(rating) {
+    console.log('Initializing gauge with rating:', rating);
+    const target = document.getElementById('landlord-rating-gauge');
+    if (!target) {
+        console.error('Gauge canvas element not found');
+        return;
+    }
+
+    // Make sure Gauge is available
+    if (typeof Gauge !== 'function') {
+        console.error('Gauge.js library not loaded');
+        return;
+    }
+
+    // Reset canvas dimensions
+    target.width = 250;
+    target.height = 200;
+    
+    // Clear the canvas
+    const ctx = target.getContext('2d');
+    ctx.clearRect(0, 0, target.width, target.height);
+
+    var opts = {
+        angle: 0.15,
+        lineWidth: 0.44,
+        radiusScale: 1.0,
+        pointer: {
+            length: 0.6,
+            strokeWidth: 0.035,
+            color: '#000000'
+        },
+        limitMax: true,
+        limitMin: true,
+        staticZones: [
+            {strokeStyle: "#FF0000", min: 0, max: 3.0},
+            {strokeStyle: "#FFA500", min: 3.0, max: 3.5},
+            {strokeStyle: "#FFFF00", min: 3.5, max: 4.5},
+            {strokeStyle: "#00FF00", min: 4.5, max: 5.0}
+        ],
+        strokeColor: '#E0E0E0',
+        highDpiSupport: true,
+        generateGradient: true,
+        staticLabels: {
+            font: "12px sans-serif",
+            labels: [0, 1.0, 2.0, 3.0, 4.0, 5.0],
+            color: "#000000",
+            fractionDigits: 1
+        },
+        renderTicks: {
+            divisions: 5,
+            divWidth: 1.1,
+            divLength: 0.7,
+            divColor: '#333333',
+            subDivisions: 3,
+            subLength: 0.5,
+            subWidth: 0.6,
+            subColor: '#666666'
+        }
+    };
+    
+    try {
+        console.log('Creating new gauge instance');
+        var gauge = new Gauge(target).setOptions(opts);
+        gauge.maxValue = 5;
+        gauge.setMinValue(0);
+        gauge.animationSpeed = 32;
+        console.log('Setting gauge value:', rating);
+        gauge.set(rating);
+        console.log('Gauge initialized successfully');
+    } catch (error) {
+        console.error('Error initializing gauge:', error);
+        document.getElementById('average-rating').innerHTML = 
+            '<p class="text-danger">Reytinq göstəricisini yükləmək mümkün olmadı</p>';
+        return;
+    }
+    
+    // Update rating text
+    document.getElementById('average-rating').innerHTML = `
+        <div class="mt-3">
+            <h3 class="mb-2">${rating.toFixed(1)} / 5.0</h3>
+            <p class="text-${getLandlordRatingColor(rating)} mb-0">
+                ${getLandlordRatingText(rating)}
+            </p>
+        </div>
+    `;
+}
+
+function getLandlordRatingColor(rating) {
+    if (rating >= 4.5) return 'success';
+    if (rating >= 3.5) return 'info';
+    if (rating >= 3.0) return 'warning';
+    return 'danger';
+}
+
+function getLandlordRatingText(rating) {
+    if (rating >= 4.5) return 'Əla ev sahibi';
+    if (rating >= 3.5) return 'Yüksək reytinqli ev sahibi';
+    if (rating >= 3.0) return 'Orta reytinqli ev sahibi';
+    return 'Aşağı reytinqli ev sahibi';
+}
 </script>
 {% endblock %} 

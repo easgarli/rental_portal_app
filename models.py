@@ -16,7 +16,7 @@ class User(UserMixin, db.Model):
     role = db.Column(db.Enum('tenant', 'landlord', 'admin', name='user_roles'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # Relationships
+    # Define relationships
     ratings_given = db.relationship('Rating', foreign_keys='Rating.rater_id', backref='rater')
     ratings_received = db.relationship('Rating', foreign_keys='Rating.ratee_id', backref='ratee')
     tenant_score = db.relationship('TenantScore', backref='tenant', uselist=False)
@@ -27,17 +27,16 @@ class Rating(db.Model):
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     rater_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
     ratee_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
-    property_id = db.Column(db.String(36), db.ForeignKey('properties.id'), nullable=True)
-    rating = db.Column(db.Integer, nullable=False)
+    property_id = db.Column(db.String(36), db.ForeignKey('properties.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     review = db.Column(db.Text)
     
-    # Rating fields (common for both tenants and landlords)
-    reliability = db.Column(db.Integer)  # Payment discipline for tenants, Property accuracy for landlords
-    responsibility = db.Column(db.Integer)  # Property care for tenants, Contract transparency for landlords
-    communication = db.Column(db.Integer)  # Common for both
-    respect = db.Column(db.Integer)  # Neighbor relations for tenants, Privacy respect for landlords
-    compliance = db.Column(db.Integer)  # Contract compliance for tenants, Maintenance for landlords
+    # Rating components
+    reliability = db.Column(db.Integer, nullable=False)
+    responsibility = db.Column(db.Integer, nullable=False)
+    communication = db.Column(db.Integer, nullable=False)
+    respect = db.Column(db.Integer, nullable=False)
+    compliance = db.Column(db.Integer, nullable=False)
     
     property = db.relationship('Property', backref='ratings')
 
@@ -126,7 +125,11 @@ class Property(db.Model):
         from sqlalchemy import func
         
         # Calculate landlord's average rating for this specific property
-        avg_rating = db.session.query(func.avg(Rating.rating))\
+        avg_rating = db.session.query(
+            func.avg(
+                (Rating.reliability + Rating.responsibility + 
+                 Rating.communication + Rating.respect + Rating.compliance) / 5.0
+            ))\
             .filter(
                 Rating.ratee_id == self.landlord_id,
                 Rating.property_id == self.id
@@ -154,3 +157,24 @@ class Property(db.Model):
                 'ratings_count': ratings_count
             }
         } 
+
+class TenantQuestionnaire(db.Model):
+    __tablename__ = 'tenant_questionnaires'
+    
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    age_group = db.Column(db.String(20), nullable=False)
+    gender = db.Column(db.String(10), nullable=False)
+    marital_status = db.Column(db.String(20), nullable=False)
+    dependents = db.Column(db.String(20), nullable=False)
+    education = db.Column(db.String(20), nullable=False)
+    work_sector = db.Column(db.String(50), nullable=False)
+    work_experience = db.Column(db.String(20), nullable=False)
+    credit_history = db.Column(db.String(50), nullable=False)
+    monthly_income = db.Column(db.Float, nullable=False)
+    monthly_expenses = db.Column(db.Float, nullable=False)
+    planned_rent = db.Column(db.Float, nullable=False)
+    credit_score = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    tenant = db.relationship('User', backref='questionnaire') 

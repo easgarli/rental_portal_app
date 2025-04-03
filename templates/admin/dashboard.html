@@ -22,6 +22,9 @@
                 <li class="nav-item">
                     <a class="nav-link" data-bs-toggle="tab" href="#landlords">Mülk Sahibləri</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#credit-scores">Kredit Skorları</a>
+                </li>
             </ul>
         </div>
         <div class="card-body">
@@ -99,6 +102,29 @@
                                     <th>Orta Reytinq</th>
                                     <th>Aldığı Rəylər</th>
                                     <th>Verdiyi Rəylər</th>
+                                    <th>Əməliyyatlar</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Filled by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="credit-scores">
+                    <div class="table-responsive">
+                        <table class="table" id="credit-scores-table">
+                            <thead>
+                                <tr>
+                                    <th>İcarədar</th>
+                                    <th>Email</th>
+                                    <th>Kredit Skoru</th>
+                                    <th>Yaş Qrupu</th>
+                                    <th>Təhsil</th>
+                                    <th>İş Sektoru</th>
+                                    <th>İş Təcrübəsi</th>
+                                    <th>Kredit Tarixçəsi</th>
+                                    <th>Tarix</th>
                                     <th>Əməliyyatlar</th>
                                 </tr>
                             </thead>
@@ -309,6 +335,70 @@ function loadLandlords() {
         });
 }
 
+function loadCreditScores() {
+    fetch('/api/admin/credit-scores')
+        .then(response => response.json())
+        .then(scores => {
+            const tbody = document.querySelector('#credit-scores-table tbody');
+            tbody.innerHTML = scores.map(score => `
+                <tr>
+                    <td>${score.tenant_name}</td>
+                    <td>${score.tenant_email}</td>
+                    <td>
+                        <span class="badge bg-${getCreditScoreColor(score.credit_score)}">
+                            ${score.credit_score}
+                        </span>
+                    </td>
+                    <td>${score.age_group}</td>
+                    <td>${score.education}</td>
+                    <td>${score.work_sector}</td>
+                    <td>${score.work_experience}</td>
+                    <td>${score.credit_history}</td>
+                    <td>${new Date(score.created_at).toLocaleDateString('az-AZ')}</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" onclick="deleteCreditScore('${score.id}')">
+                            Sil
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Kredit skorlarını yükləmək mümkün olmadı');
+        });
+}
+
+function getCreditScoreColor(score) {
+    if (score >= 850) return 'success';
+    if (score >= 700) return 'info';
+    if (score >= 600) return 'warning';
+    return 'danger';
+}
+
+function deleteCreditScore(scoreId) {
+    if (!confirm('Bu kredit skorunu silmək istədiyinizə əminsiniz?')) {
+        return;
+    }
+    
+    fetch(`/api/admin/credit-scores/${scoreId}`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': getCsrfToken()
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Kredit skorunu silmək mümkün olmadı');
+        }
+        loadCreditScores();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert(error.message);
+    });
+}
+
 // Update the tab change event listener
 document.querySelectorAll('a[data-bs-toggle="tab"]').forEach(tab => {
     tab.addEventListener('show.bs.tab', event => {
@@ -319,6 +409,8 @@ document.querySelectorAll('a[data-bs-toggle="tab"]').forEach(tab => {
             loadLandlords();
         } else if (target === '#ratings') {
             loadRatings();
+        } else if (target === '#credit-scores') {
+            loadCreditScores();
         }
     });
 });

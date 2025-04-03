@@ -1,6 +1,6 @@
-from flask import Flask, jsonify, request, render_template, flash, redirect, url_for
+from flask import Flask, jsonify, request, render_template, flash, redirect, url_for, send_from_directory
 from flask_login import LoginManager, current_user, login_required
-from flask_wtf.csrf import CSRFProtect, generate_csrf
+from flask_wtf.csrf import CSRFProtect
 from datetime import timedelta
 from dotenv import load_dotenv
 import os
@@ -18,10 +18,14 @@ from routes.tenant_score import tenant_score_bp
 from routes.users import users_bp
 from routes.properties import properties_bp
 from routes.admin import admin_bp
+from routes.questionnaire import questionnaire_bp
 from utils.csrf import init_csrf
 
 def create_app():
     app = Flask(__name__)
+    
+    # Configure static files directory
+    app.static_folder = 'static'
     
     # Configure app with fixed secret key
     app.config['SECRET_KEY'] = 'your-secret-key-here'
@@ -60,6 +64,7 @@ def create_app():
     app.register_blueprint(users_bp)
     app.register_blueprint(properties_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(questionnaire_bp)
 
     @login_manager.user_loader
     def load_user(user_id):

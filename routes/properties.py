@@ -5,9 +5,32 @@ from datetime import datetime
 
 properties_bp = Blueprint('properties', __name__)
 
+@properties_bp.route('/api/properties/my')
+@login_required
+def get_my_properties():
+    """Get properties for the current landlord"""
+    if current_user.role != 'landlord':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    try:
+        properties = Property.query.filter_by(landlord_id=current_user.id).all()
+        return jsonify([{
+            'id': prop.id,
+            'title': prop.title,
+            'description': prop.description,
+            'monthly_rent': prop.monthly_rent,
+            'address': prop.address,
+            'available_from': prop.available_from.isoformat(),
+            'status': prop.status
+        } for prop in properties])
+    except Exception as e:
+        print(f"Error fetching properties: {str(e)}")  # Debug log
+        return jsonify({'error': str(e)}), 500
+
 @properties_bp.route('/api/properties')
 @login_required
 def get_properties():
+    """Get properties based on user role and parameters"""
     landlord_id = request.args.get('landlord_id')
     
     # Base query
@@ -23,14 +46,27 @@ def get_properties():
         # Only show available or rented properties
         query = query.filter(Property.status.in_(['available', 'rented']))
         
-        # Order by status (rented first) and then by creation date
+        # Order by status (available first) and then by creation date
         query = query.order_by(
-            Property.status.desc(),  # 'rented' comes before 'available'
+            Property.status.desc(),
             Property.created_at.desc()
         )
     
-    properties = query.all()
-    return jsonify([property.to_dict() for property in properties])
+    try:
+        properties = query.all()
+        return jsonify([{
+            'id': prop.id,
+            'title': prop.title,
+            'description': prop.description,
+            'monthly_rent': prop.monthly_rent,
+            'address': prop.address,
+            'available_from': prop.available_from.isoformat(),
+            'created_at': prop.created_at.isoformat(),
+            'status': prop.status
+        } for prop in properties])
+    except Exception as e:
+        print(f"Error fetching properties: {str(e)}")  # Debug log
+        return jsonify({'error': str(e)}), 500
 
 @properties_bp.route('/api/public/properties')
 def get_public_properties():

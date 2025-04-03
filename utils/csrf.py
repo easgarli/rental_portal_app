@@ -32,7 +32,4 @@ def init_csrf(app):
     # Add CSRF token to template context
     @app.context_processor
     def csrf_context_processor():
-        return {
-            'csrf_token': generate_csrf(),
-            'csrf_token_header': 'X-CSRFToken'
-        } 
+        return dict(csrf_token=generate_csrf()) 

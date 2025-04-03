@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, jsonify, abort
 from flask_login import login_required, current_user
-from models import db, User, Property, Rating, TenantScore
+from models import db, User, Property, Rating, TenantScore, TenantQuestionnaire
 from functools import wraps
 
 admin_bp = Blueprint('admin', __name__)
@@ -120,6 +120,40 @@ def delete_rating(rating_id):
         db.session.delete(rating)
         db.session.commit()
         return jsonify({'message': 'Rating deleted successfully'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/api/admin/credit-scores')
+@login_required
+@admin_required
+def get_credit_scores():
+    """Get all credit scores with tenant information"""
+    scores = TenantQuestionnaire.query.all()
+    return jsonify([{
+        'id': score.id,
+        'tenant_name': score.tenant.name,
+        'tenant_email': score.tenant.email,
+        'credit_score': score.credit_score,
+        'age_group': score.age_group,
+        'education': score.education,
+        'work_sector': score.work_sector,
+        'work_experience': score.work_experience,
+        'credit_history': score.credit_history,
+        'created_at': score.created_at.isoformat()
+    } for score in scores])
+
+@admin_bp.route('/api/admin/credit-scores/<score_id>', methods=['DELETE'])
+@login_required
+@admin_required
+def delete_credit_score(score_id):
+    """Delete a credit score"""
+    score = TenantQuestionnaire.query.get_or_404(score_id)
+    
+    try:
+        db.session.delete(score)
+        db.session.commit()
+        return jsonify({'message': 'Credit score deleted successfully'})
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500 

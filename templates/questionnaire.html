@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Kredit Skorinq Anketi{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Kredit Skorinq Anketi</h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Yaşınız</label>
+                            <select class="form-select" name="age_group" required>
+                                <option value="">Seçin...</option>
+                                {% for option in scoring_rules['Yaşı']['options'] %}
+                                <option value="{{ option }}">{{ option }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Cinsiniz</label>
+                            <select class="form-select" name="gender" required>
+                                <option value="">Seçin...</option>
+                                {% for option in scoring_rules['Cinsi']['options'] %}
+                                <option value="{{ option }}">{{ option }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Ailə vəziyyətiniz</label>
+                            <select class="form-select" name="marital_status" required>
+                                <option value="">Seçin...</option>
+                                {% for option in scoring_rules['Ailə vəziyyəti']['options'] %}
+                                <option value="{{ option }}">{{ option }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Öhdəsində olanların sayı</label>
+                            <select class="form-select" name="dependents" required>
+                                <option value="">Seçin...</option>
+                                {% for option in scoring_rules['Öhdəsində olanların sayı']['options'] %}
+                                <option value="{{ option }}">{{ option }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Təhsiliniz</label>
+                            <select class="form-select" name="education" required>
+                                <option value="">Seçin...</option>
+                                {% for option in scoring_rules['Təhsili']['options'] %}
+                                <option value="{{ option }}">{{ option }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">İş yeriniz</label>
+                            <select class="form-select" name="work_sector" required>
+                                <option value="">Seçin...</option>
+                                {% for sector_group, sectors in sector_risk_mapping.items() %}
+                                    {% for sector in sectors %}
+                                    <option value="{{ sector }}">{{ sector }}</option>
+                                    {% endfor %}
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Hazırki iş yeri üzrə əmək stajı</label>
+                            <select class="form-select" name="work_experience" required>
+                                <option value="">Seçin...</option>
+                                {% for option in scoring_rules['Hazırki iş yeri üzrə əmək stajı']['options'] %}
+                                <option value="{{ option }}">{{ option }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Kredit tarixçəsi</label>
+                            <select class="form-select" name="credit_history" required>
+                                <option value="">Seçin...</option>
+                                {% for option in scoring_rules['Kredit tarixçəsi']['options'] %}
+                                <option value="{{ option }}">{{ option }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Aylıq gəliriniz (AZN)</label>
+                            <input type="number" class="form-control" name="monthly_income" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Aylıq xərcləriniz (AZN)</label>
+                            <input type="number" class="form-control" name="monthly_expenses" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Planlaşdırılan aylıq kirayə məbləği (AZN)</label>
+                            <input type="number" class="form-control" name="planned_rent" required>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">Təsdiq et</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

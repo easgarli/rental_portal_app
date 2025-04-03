@@ -46,36 +46,29 @@ def update_tenant_score(tenant_id):
 @login_required
 def rate_tenant():
     if current_user.role != 'landlord':
-        return jsonify({'error': 'Yalnız mülk sahibləri icarədarları qiymətləndirə bilər'}), 403
+        return jsonify({'error': 'Only landlords can rate tenants'}), 403
         
     data = request.get_json()
-    if not data:
-        return jsonify({'error': 'Invalid data format'}), 400
     
+    if not all(k in data for k in ['tenant_id', 'property_id', 'reliability', 'responsibility', 
+                                  'communication', 'respect', 'compliance']):
+        return jsonify({'error': 'Missing required fields'}), 400
+        
     tenant = User.query.get(data['tenant_id'])
     
     if not tenant or tenant.role != 'tenant':
         return jsonify({'error': 'Yanlış icarədar ID'}), 400
         
     try:
-        # Calculate overall rating as average of components
-        overall_rating = sum([
-            data.get('reliability', 0),  # Payment discipline
-            data.get('responsibility', 0),  # Property care
-            data.get('communication', 0),
-            data.get('respect', 0),  # Neighbor relations
-            data.get('compliance', 0)  # Contract compliance
-        ]) / 5
-        
         rating = Rating(
             rater_id=current_user.id,
-            ratee_id=tenant.id,
-            rating=round(overall_rating),
-            reliability=data.get('reliability'),
-            responsibility=data.get('responsibility'),
-            communication=data.get('communication'),
-            respect=data.get('respect'),
-            compliance=data.get('compliance'),
+            ratee_id=data['tenant_id'],
+            property_id=data['property_id'],
+            reliability=data['reliability'],
+            responsibility=data['responsibility'],
+            communication=data['communication'],
+            respect=data['respect'],
+            compliance=data['compliance'],
             review=data.get('review', '')
         )
         
@@ -83,7 +76,7 @@ def rate_tenant():
         db.session.commit()
         
         # Update tenant score
-        update_tenant_score(tenant.id)
+        update_tenant_score(data['tenant_id'])
         
         return jsonify({'message': 'Qiymətləndirmə uğurla əlavə edildi'})
     except Exception as e:
@@ -108,21 +101,11 @@ def rate_landlord():
         return jsonify({'error': 'Missing required fields'}), 400
     
     try:
-        # Calculate average rating
-        rating_value = sum([
-            data['reliability'],  # Property accuracy
-            data['responsibility'],  # Contract transparency
-            data['communication'],  # Support communication
-            data['compliance'],  # Maintenance
-            data['respect']  # Privacy respect
-        ]) / 5
-        
         # Create rating
         rating = Rating(
             rater_id=current_user.id,
             ratee_id=data['landlord_id'],
             property_id=data['property_id'],
-            rating=rating_value,
             reliability=data['reliability'],  # Property accuracy
             responsibility=data['responsibility'],  # Contract transparency
             communication=data['communication'],
@@ -143,28 +126,31 @@ def rate_landlord():
 @ratings_bp.route('/ratings/<user_id>', methods=['GET'])
 @login_required
 def get_user_ratings(user_id):
-    user = User.query.get(user_id)
-    if not user:
-        return jsonify({'error': 'İstifadəçi tapılmadı'}), 404
-        
+    """Get all ratings for a user"""
     ratings = Rating.query.filter_by(ratee_id=user_id).all()
-    ratings_data = [{
-        'rating': r.rating,
-        'review': r.review,
-        'rater_name': r.rater.name,
-        'created_at': r.created_at.isoformat(),
-        'reliability': r.reliability,  # payment_discipline for tenants
-        'responsibility': r.responsibility,  # property_care for tenants
+    
+    return jsonify([{
+        'id': r.id,
+        # Calculate average rating from components
+        'rating': round((r.reliability + r.responsibility + r.communication + 
+                        r.respect + r.compliance) / 5, 1),
+        'reliability': r.reliability,
+        'responsibility': r.responsibility,
         'communication': r.communication,
-        'respect': r.respect,  # neighbor_relations for tenants
-        'compliance': r.compliance,  # contract_compliance for tenants
+        'respect': r.respect,
+        'compliance': r.compliance,
+        'review': r.review,
+        'rater': {
+            'name': r.rater.name,
+            'email': r.rater.email,
+            'role': r.rater.role
+        },
+        'created_at': r.created_at.isoformat(),
         'property': {
             'title': r.property.title,
             'address': r.property.address
         } if r.property else None
-    } for r in ratings]
-    
-    return jsonify(ratings_data)
+    } for r in ratings])
 
 @ratings_bp.route('/ratings/given/<user_id>', methods=['GET'])
 @login_required
@@ -179,16 +165,19 @@ def get_user_given_ratings(user_id):
             'title': r.property.title,
             'address': r.property.address
         } if r.property else None,
-        'landlord': {
+        'ratee': {
             'name': r.ratee.name,
-            'email': r.ratee.email
+            'email': r.ratee.email,
+            'role': r.ratee.role
         },
-        'rating': r.rating,
-        'reliability': r.reliability,  # Property accuracy
-        'responsibility': r.responsibility,  # Contract transparency
+        # Calculate average rating from components
+        'rating': round((r.reliability + r.responsibility + r.communication + 
+                        r.respect + r.compliance) / 5, 1),
+        'reliability': r.reliability,
+        'responsibility': r.responsibility,
         'communication': r.communication,
-        'compliance': r.compliance,  # Maintenance
-        'respect': r.respect,  # Privacy respect
+        'respect': r.respect,
+        'compliance': r.compliance,
         'review': r.review,
         'created_at': r.created_at.isoformat()
     } for r in ratings]

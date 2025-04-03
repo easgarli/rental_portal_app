@@ -1,0 +1,37 @@
+/* Custom styles for the rental portal */
+
+/* Gauge container styles */
+#landlord-rating-container {
+    position: relative;
+    padding: 20px;
+}
+
+#landlord-rating-gauge {
+    display: block;
+    margin: 0 auto;
+}
+
+#landlord-rating {
+    margin-top: 15px;
+    text-align: center;
+}
+
+/* Rating item styles */
+.rating-item {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.rating-item:hover {
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.rating-details {
+    margin: 10px 0;
+}
+
+/* Star rating colors */
+.rating-stars {
+    color: #ffc107;
+} 
