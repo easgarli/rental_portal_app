@@ -17,7 +17,7 @@ project:
     - "Frontend UI with Bootstrap, HTML, CSS, and JavaScript"
     - "Database schema designed for efficient data retrieval and analytics"
     - "Secure API with input validation and error handling"
-    - "Dockerized deployment with Nginx as a reverse proxy"
+    - "Nginx reverse proxy deployment on Ubuntu"
     - "Logging and monitoring for debugging and performance tracking"
 
   tech_stack:
@@ -32,7 +32,8 @@ project:
     frontend:
       framework: "HTML, CSS, JavaScript"
       UI: "Bootstrap-based, responsive design"
-      interactions: "AJAX requests for rating and score updates"
+      interactions: "Fetch API for AJAX requests"
+      visualization: "Progress bars for ratings display"
     
     devops:
       database_management: "PostgreSQL with connection pooling"
@@ -56,8 +57,13 @@ project:
             - "id: Primary Key, UUID"
             - "rater_id: Foreign Key (Users.id)"
             - "ratee_id: Foreign Key (Users.id)"
-            - "rating: Integer (0-5)"
+            - "reliability: Integer (0-5)"
+            - "responsibility: Integer (0-5)"
+            - "communication: Integer (0-5)"
+            - "respect: Integer (0-5)"
+            - "compliance: Integer (0-5)"
             - "review: Text"
+            - "property_id: Foreign Key (Properties.id)"
             - "created_at: Timestamp, default CURRENT_TIMESTAMP"
 
         TenantScore:
@@ -66,6 +72,18 @@ project:
             - "tenant_id: Foreign Key (Users.id)"
             - "credit_score: Float (0-100)"
             - "payment_history: JSON (list of past payments)"
+            - "updated_at: Timestamp, default CURRENT_TIMESTAMP"
+
+        Properties:
+          columns:
+            - "id: Primary Key, UUID"
+            - "landlord_id: Foreign Key (Users.id)"
+            - "title: String, 200 characters"
+            - "description: Text"
+            - "address: String, 200 characters"
+            - "monthly_rent: Decimal"
+            - "available_from: Date"
+            - "created_at: Timestamp, default CURRENT_TIMESTAMP"
             - "updated_at: Timestamp, default CURRENT_TIMESTAMP"
 
   routes:
@@ -78,22 +96,35 @@ project:
       - "POST /rate-tenant - Landlord rates a tenant (0-5 stars)"
       - "POST /rate-landlord - Tenant rates a landlord (0-5 stars)"
       - "GET /ratings/<user_id> - Get all ratings for a user"
+      - "GET /ratings/given/<user_id> - Get ratings given by user"
 
     tenant_score:
       - "GET /tenant-score/<tenant_id> - Retrieve a tenant's score"
+      - "GET /api/tenant-score/<tenant_id> - Get tenant's credit score"
+
+    properties:
+      - "GET /api/properties - List all properties"
+      - "GET /api/properties?landlord_id=<id> - List landlord's properties"
+      - "POST /api/properties - Create new property"
+      - "PUT /api/properties/<id> - Update property"
+      - "DELETE /api/properties/<id> - Delete property"
 
   ui:
     dashboard: "Tenant and Landlord ratings overview"
     forms:
       - "Tenant rating form (landlord submits)"
       - "Landlord rating form (tenant submits)"
-    visualization: "TenantScore displayed as a gauge/meter"
+    visualization:
+      - "TenantScore displayed as progress bars"
+      - "Credit score displayed as gauge/meter"
+      - "Rating dimensions shown as progress bars"
 
   deployment:
     steps:
-      - "Containerize with Docker"
+      - "Set up Ubuntu 24.04.1 LTS server"
       - "Run Flask app with Gunicorn"
       - "Deploy using Nginx as reverse proxy"
+      - "Configure SSL certificates"
       - "Monitor logs and optimize performance"
 
   testing:
