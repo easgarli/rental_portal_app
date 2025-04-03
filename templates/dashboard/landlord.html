@@ -25,7 +25,7 @@
                     
                     <div class="mb-3">
                         <label class="form-label">Ödəniş intizamı</label>
-                        <select class="form-control" name="payment_discipline" required>
+                        <select class="form-control" name="reliability" required>
                             {% for i in range(5, 0, -1) %}
                             <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
                             {% endfor %}
@@ -34,7 +34,7 @@
                     
                     <div class="mb-3">
                         <label class="form-label">Əmlaka münasibət</label>
-                        <select class="form-control" name="property_care" required>
+                        <select class="form-control" name="responsibility" required>
                             {% for i in range(5, 0, -1) %}
                             <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
                             {% endfor %}
@@ -52,7 +52,7 @@
                     
                     <div class="mb-3">
                         <label class="form-label">Qonşular və binaya münasibət</label>
-                        <select class="form-control" name="neighbor_relations" required>
+                        <select class="form-control" name="respect" required>
                             {% for i in range(5, 0, -1) %}
                             <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
                             {% endfor %}
@@ -61,7 +61,7 @@
                     
                     <div class="mb-3">
                         <label class="form-label">Müqavilə şərtlərinə uyğunluq</label>
-                        <select class="form-control" name="contract_compliance" required>
+                        <select class="form-control" name="compliance" required>
                             {% for i in range(5, 0, -1) %}
                             <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
                             {% endfor %}
@@ -87,6 +87,61 @@
             <div class="card-body">
                 <h5 class="card-title">Aldığınız Qiymətləndirmələr</h5>
                 <div id="ratings-list">Yüklənir...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add new section for property management -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Əmlak İdarəetməsi</h5>
+                <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addPropertyModal">
+                    Yeni Əmlak Əlavə Et
+                </button>
+                <div id="properties-list">Yüklənir...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Property Modal -->
+<div class="modal fade" id="addPropertyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Yeni Əmlak Əlavə Et</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="add-property-form">
+                    <div class="mb-3">
+                        <label class="form-label">Başlıq</label>
+                        <input type="text" class="form-control" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Təsvir</label>
+                        <textarea class="form-control" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Aylıq İcarə (AZN)</label>
+                        <input type="number" class="form-control" name="monthly_rent" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Ünvan</label>
+                        <input type="text" class="form-control" name="address" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">İcarəyə verilmə tarixi</label>
+                        <input type="date" class="form-control" name="available_from" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bağla</button>
+                <button type="button" class="btn btn-primary" onclick="submitProperty()">Əlavə Et</button>
             </div>
         </div>
     </div>
@@ -129,33 +184,41 @@ fetch('/api/tenants')
     });
 
 // Form submission handler
-document.getElementById('rate-tenant-form').addEventListener('submit', function(e) {
-    e.preventDefault();
+function submitTenantRating(event) {
+    event.preventDefault();
     
-    const formData = new FormData(this);
+    const formData = new FormData(event.target);
     const data = {
         tenant_id: document.getElementById('tenant-id').value,
-        payment_discipline: parseInt(formData.get('payment_discipline')),
-        property_care: parseInt(formData.get('property_care')),
+        reliability: parseInt(formData.get('reliability')),
+        responsibility: parseInt(formData.get('responsibility')),
         communication: parseInt(formData.get('communication')),
-        neighbor_relations: parseInt(formData.get('neighbor_relations')),
-        contract_compliance: parseInt(formData.get('contract_compliance')),
+        respect: parseInt(formData.get('respect')),
+        compliance: parseInt(formData.get('compliance')),
         review: formData.get('review')
     };
+
+    // Validate all rating fields are numbers
+    const ratingFields = ['reliability', 'responsibility', 'communication', 
+                         'respect', 'compliance'];
     
+    for (const field of ratingFields) {
+        if (isNaN(data[field]) || data[field] < 1 || data[field] > 5) {
+            alert('Bütün reytinq sahələri 1-5 arasında olmalıdır');
+            return;
+        }
+    }
+
     fetch('/rate-tenant', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
         },
         body: JSON.stringify(data)
     })
     .then(response => {
         if (!response.ok) {
-            if (response.status === 302 || response.status === 401) {
-                window.location.href = '/login';
-                throw new Error('Sessiyanız başa çatıb. Yenidən daxil olun.');
-            }
             return response.json().then(err => {
                 throw new Error(err.error || 'Qiymətləndirmə zamanı xəta baş verdi');
             });
@@ -164,14 +227,16 @@ document.getElementById('rate-tenant-form').addEventListener('submit', function(
     })
     .then(data => {
         alert('Qiymətləndirmə uğurla əlavə edildi!');
-        this.reset();
-        location.reload();
+        event.target.reset();
     })
     .catch(error => {
         console.error('Error:', error);
-        alert(error.message || 'Qiymətləndirməni göndərmək mümkün olmadı');
+        alert(error.message);
     });
-});
+}
+
+// Add form submit event listener
+document.getElementById('rate-tenant-form').addEventListener('submit', submitTenantRating);
 
 // Format ratings display
 function formatRatingStars(rating) {
@@ -180,40 +245,204 @@ function formatRatingStars(rating) {
 }
 
 // Fetch ratings for landlord
-fetch(`/ratings/{{ current_user.id }}`)
+function loadReceivedRatings() {
+    fetch(`/ratings/{{ current_user.id }}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!data.length) {
+                document.getElementById('ratings-list').innerHTML = 'Hələ qiymətləndirmə yoxdur';
+                return;
+            }
+
+            const ratingsList = data.map(rating => `
+                <div class="rating-item mb-3 p-3 border rounded">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6>İcarədar: ${rating.rater_name}</h6>
+                            ${rating.property ? 
+                                `<small class="text-muted">Əmlak: ${rating.property.title} - ${rating.property.address}</small>` 
+                                : ''}
+                        </div>
+                        <span class="badge bg-${getRatingColor(rating.rating)}">
+                            ${rating.rating.toFixed(1)} ★
+                        </span>
+                    </div>
+                    <div class="mt-2">
+                        <strong>Ödəniş intizamı:</strong> ${formatRatingStars(rating.reliability)}<br>
+                        <strong>Əmlaka münasibət:</strong> ${formatRatingStars(rating.responsibility)}<br>
+                        <strong>Ünsiyyət:</strong> ${formatRatingStars(rating.communication)}<br>
+                        <strong>Qonşularla münasibət:</strong> ${formatRatingStars(rating.respect)}<br>
+                        <strong>Müqavilə şərtlərinə uyğunluq:</strong> ${formatRatingStars(rating.compliance)}
+                    </div>
+                    ${rating.review ? `<p class="mt-2 fst-italic">"${rating.review}"</p>` : ''}
+                    <small class="text-muted">Tarix: ${new Date(rating.created_at).toLocaleDateString('az-AZ')}</small>
+                </div>
+            `).join('');
+            
+            document.getElementById('ratings-list').innerHTML = ratingsList;
+        })
+        .catch(error => {
+            console.error('Error fetching ratings:', error);
+            document.getElementById('ratings-list').innerHTML = 'Qiymətləndirmələri yükləmək mümkün olmadı';
+        });
+}
+
+// Function to get rating color
+function getRatingColor(rating) {
+    if (rating >= 4.5) return 'success';
+    if (rating >= 3.5) return 'info';
+    if (rating >= 2.5) return 'warning';
+    return 'danger';
+}
+
+// Function to format currency
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('az-AZ', { style: 'currency', currency: 'AZN' }).format(amount);
+}
+
+// Function to format date
+function formatDate(dateString) {
+    return new Date(dateString).toLocaleDateString('az-AZ');
+}
+
+// Load landlord's properties
+function loadProperties() {
+    fetch('/api/properties')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(properties => {
+            if (!properties.length) {
+                document.getElementById('properties-list').innerHTML = 
+                    '<div class="col-12 text-center">Hələ əmlak əlavə edilməyib</div>';
+                return;
+            }
+            
+            const propertiesContainer = document.createElement('div');
+            propertiesContainer.className = 'row';
+            
+            const propertiesHtml = properties.map(property => `
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h5 class="card-title mb-0">${property.title}</h5>
+                                <div>
+                                    <button class="btn btn-sm btn-warning me-2" onclick="editProperty('${property.id}')">
+                                        Düzəliş Et
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteProperty('${property.id}')">
+                                        Sil
+                                    </button>
+                                </div>
+                            </div>
+                            <p class="card-text">${property.description || ''}</p>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Aylıq İcarə:</strong> ${formatCurrency(property.monthly_rent)}</p>
+                                    <p><strong>Ünvan:</strong> ${property.address}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Status:</strong> ${property.status === 'available' ? 'Boş' : 'İcarədə'}</p>
+                                    <p><strong>İcarəyə verilmə tarixi:</strong> ${formatDate(property.available_from)}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            propertiesContainer.innerHTML = propertiesHtml;
+            document.getElementById('properties-list').innerHTML = '';
+            document.getElementById('properties-list').appendChild(propertiesContainer);
+        })
+        .catch(error => {
+            console.error('Error loading properties:', error);
+            document.getElementById('properties-list').innerHTML = 
+                '<div class="col-12 text-center text-danger">Əmlakları yükləmək mümkün olmadı</div>';
+        });
+}
+
+// Submit new property
+function submitProperty() {
+    const form = document.getElementById('add-property-form');
+    const formData = new FormData(form);
+    
+    const data = {
+        title: formData.get('title'),
+        description: formData.get('description'),
+        monthly_rent: parseFloat(formData.get('monthly_rent')),
+        address: formData.get('address'),
+        available_from: formData.get('available_from')
+    };
+
+    fetch('/api/properties', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify(data)
+    })
     .then(response => {
         if (!response.ok) {
-            throw new Error('Network response was not ok');
+            return response.json().then(err => {
+                throw new Error(err.error || 'Əmlak əlavə edilərkən xəta baş verdi');
+            });
         }
         return response.json();
     })
-    .then(data => {
-        if (!data.length) {
-            document.getElementById('ratings-list').innerHTML = 'Hələ qiymətləndirmə yoxdur';
-            return;
-        }
-
-        const ratingsList = data.map(rating => `
-            <div class="rating-item mb-3 p-3 border rounded">
-                <h6>İcarədar: ${rating.rater_name}</h6>
-                <div class="stars text-warning">${formatRatingStars(rating.rating)}</div>
-                <div class="mt-2">
-                    <strong>Əmlakın real vəziyyəti:</strong> ${formatRatingStars(rating.property_accuracy)}<br>
-                    <strong>Müqavilə şəffaflığı:</strong> ${formatRatingStars(rating.contract_transparency)}<br>
-                    <strong>Ünsiyyət və dəstək:</strong> ${formatRatingStars(rating.support_communication)}<br>
-                    <strong>Təmir və texniki xidmət:</strong> ${formatRatingStars(rating.maintenance)}<br>
-                    <strong>Gizlilik və hörmət:</strong> ${formatRatingStars(rating.privacy_respect)}
-                </div>
-                <p class="mt-2">${rating.review || ''}</p>
-                <small class="text-muted">Tarix: ${new Date(rating.created_at).toLocaleDateString('az-AZ')}</small>
-            </div>
-        `).join('');
-        
-        document.getElementById('ratings-list').innerHTML = ratingsList;
+    .then(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addPropertyModal'));
+        modal.hide();
+        form.reset();
+        loadProperties();
+        alert('Əmlak uğurla əlavə edildi!');
     })
     .catch(error => {
-        console.error('Error fetching ratings:', error);
-        document.getElementById('ratings-list').innerHTML = 'Qiymətləndirmələri yükləmək mümkün olmadı';
+        console.error('Error:', error);
+        alert(error.message);
     });
+}
+
+// Add delete property function
+function deleteProperty(propertyId) {
+    if (!confirm('Bu əmlakı silmək istədiyinizə əminsiniz?')) {
+        return;
+    }
+
+    fetch(`/api/properties/${propertyId}`, {
+        method: 'DELETE'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Əmlakı silmək mümkün olmadı');
+        }
+        loadProperties();
+        alert('Əmlak uğurla silindi');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert(error.message);
+    });
+}
+
+// Add edit property function
+function editProperty(propertyId) {
+    // TODO: Implement property editing
+    alert('Düzəliş funksiyası hazırlanır...');
+}
+
+// Initial loads
+loadProperties();
+loadReceivedRatings();
 </script>
 {% endblock %} 

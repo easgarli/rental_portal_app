@@ -16,6 +16,8 @@ from routes.auth import auth_bp
 from routes.ratings import ratings_bp
 from routes.tenant_score import tenant_score_bp
 from routes.users import users_bp
+from routes.properties import properties_bp
+from routes.admin import admin_bp
 from utils.csrf import init_csrf
 
 def create_app():
@@ -40,6 +42,10 @@ def create_app():
     )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+    # Initialize CSRF protection
+    csrf = CSRFProtect()
+    csrf.init_app(app)
+
     # Initialize extensions
     init_csrf(app)  # Initialize CSRF first
     db.init_app(app)
@@ -52,6 +58,8 @@ def create_app():
     app.register_blueprint(ratings_bp)
     app.register_blueprint(tenant_score_bp)
     app.register_blueprint(users_bp)
+    app.register_blueprint(properties_bp)
+    app.register_blueprint(admin_bp)
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -69,6 +77,8 @@ def create_app():
     @app.route('/dashboard')
     @login_required
     def dashboard():
+        if current_user.role == 'admin':
+            return redirect(url_for('admin.admin_dashboard'))
         if current_user.role == 'tenant':
             return render_template('dashboard/tenant.html')
         else:

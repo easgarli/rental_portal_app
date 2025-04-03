@@ -1,48 +1,184 @@
 {% extends "base.html" %}
 
-{% block title %}Home{% endblock %}
+{% block title %}Ana Səhifə{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-12 text-center mb-4">
-        <h1>Welcome to Flask Rental Portal</h1>
-        <p class="lead">Connecting tenants and landlords with transparent ratings and history</p>
+<div class="container">
+    <!-- Hero Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="p-5 text-center bg-light rounded-3">
+                <h1 class="display-4">İcarə Portalına Xoş Gəlmisiniz</h1>
+                <p class="lead">Etibarlı icarədarlar və mülk sahibləri arasında şəffaf əlaqə platforması</p>
+                {% if not current_user.is_authenticated %}
+                    <div class="mt-4">
+                        <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg me-2">Qeydiyyatdan Keç</a>
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary btn-lg">Daxil Ol</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter Section -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <form id="search-form" class="row g-3">
+                        <div class="col-md-3">
+                            <input type="text" class="form-control" id="search-text" placeholder="Başlıq və ya ünvan axtar...">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="number" class="form-control" id="min-price" placeholder="Min. qiymət">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="number" class="form-control" id="max-price" placeholder="Max. qiymət">
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-control" id="min-rating">
+                                <option value="">Min. reytinq seçin</option>
+                                <option value="4.5">4.5+ ulduz</option>
+                                <option value="4">4+ ulduz</option>
+                                <option value="3.5">3.5+ ulduz</option>
+                                <option value="3">3+ ulduz</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">Axtar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Properties Grid -->
+    <div class="row" id="properties-grid">
+        <div class="col-12 text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Yüklənir...</span>
+            </div>
+        </div>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">For Tenants</h5>
-                <p class="card-text">Find and rate landlords, manage your tenant score, and build your rental history.</p>
-                {% if not current_user.is_authenticated %}
-                    <a href="/register?role=tenant" class="btn btn-primary">Register as Tenant</a>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">For Landlords</h5>
-                <p class="card-text">Rate tenants, view tenant scores, and manage your property listings.</p>
-                {% if not current_user.is_authenticated %}
-                    <a href="/register?role=landlord" class="btn btn-primary">Register as Landlord</a>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">TenantScore System</h5>
-                <p class="card-text">Our unique scoring system helps evaluate tenants based on payment history and ratings.</p>
-                <a href="/about" class="btn btn-secondary">Learn More</a>
-            </div>
-        </div>
-    </div>
-</div>
+<script>
+// Format functions
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('az-AZ', { style: 'currency', currency: 'AZN' }).format(amount);
+}
+
+function formatDate(dateString) {
+    return new Date(dateString).toLocaleDateString('az-AZ');
+}
+
+function formatRatingStars(rating) {
+    if (!rating) return '☆☆☆☆☆';
+    return '★'.repeat(Math.round(rating)) + '☆'.repeat(5 - Math.round(rating));
+}
+
+// Load and display properties
+function loadProperties(filters = {}) {
+    fetch('/api/public/properties?' + new URLSearchParams(filters))
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(properties => {
+            // Apply filters
+            let filteredProperties = properties.filter(property => {
+                if (filters.searchText) {
+                    const searchText = filters.searchText.toLowerCase();
+                    if (!property.title.toLowerCase().includes(searchText) && 
+                        !property.address.toLowerCase().includes(searchText)) {
+                        return false;
+                    }
+                }
+                if (filters.minPrice && property.monthly_rent < filters.minPrice) return false;
+                if (filters.maxPrice && property.monthly_rent > filters.maxPrice) return false;
+                if (filters.minRating && property.landlord.avg_rating < filters.minRating) return false;
+                return true;
+            });
+
+            // Sort by landlord rating (highest first)
+            filteredProperties.sort((a, b) => b.landlord.avg_rating - a.landlord.avg_rating);
+
+            if (filteredProperties.length === 0) {
+                document.getElementById('properties-grid').innerHTML = `
+                    <div class="col-12 text-center">
+                        <p class="text-muted">Heç bir əmlak tapılmadı</p>
+                    </div>`;
+                return;
+            }
+
+            const propertiesHtml = filteredProperties.map(property => `
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="card-title mb-0">${property.title}</h5>
+                                <span class="badge bg-success">
+                                    ${property.landlord.avg_rating} ★
+                                    <small>(${property.landlord.ratings_count} rəy)</small>
+                                </span>
+                            </div>
+                            <p class="card-text">${property.description || ''}</p>
+                            <div class="mb-3">
+                                <strong>Aylıq İcarə:</strong> ${formatCurrency(property.monthly_rent)}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Ünvan:</strong><br>
+                                ${property.address}
+                            </div>
+                            <div class="mb-3">
+                                <strong>İcarəyə verilmə tarixi:</strong><br>
+                                ${formatDate(property.available_from)}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Mülk sahibi:</strong><br>
+                                ${property.landlord.name}
+                                <div class="text-warning">
+                                    ${formatRatingStars(property.landlord.avg_rating)}
+                                    <small class="text-muted">(${property.landlord.avg_rating}/5)</small>
+                                </div>
+                            </div>
+                            {% if current_user.is_authenticated and current_user.role == 'tenant' %}
+                                <button class="btn btn-primary" onclick="contactLandlord('${property.landlord.id}')">
+                                    Əlaqə saxla
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('properties-grid').innerHTML = propertiesHtml;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('properties-grid').innerHTML = `
+                <div class="col-12 text-center">
+                    <p class="text-danger">Əmlakları yükləmək mümkün olmadı</p>
+                </div>`;
+        });
+}
+
+// Handle search form submission
+document.getElementById('search-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const filters = {
+        searchText: document.getElementById('search-text').value,
+        minPrice: parseFloat(document.getElementById('min-price').value) || null,
+        maxPrice: parseFloat(document.getElementById('max-price').value) || null,
+        minRating: parseFloat(document.getElementById('min-rating').value) || null
+    };
+    loadProperties(filters);
+});
+
+// Initial load
+loadProperties();
+</script>
 {% endblock %} 

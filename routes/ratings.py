@@ -44,109 +44,101 @@ def update_tenant_score(tenant_id):
 
 @ratings_bp.route('/rate-tenant', methods=['POST'])
 @login_required
-@csrf_exempt
 def rate_tenant():
     if current_user.role != 'landlord':
         return jsonify({'error': 'Yalnız mülk sahibləri icarədarları qiymətləndirə bilər'}), 403
         
     data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Invalid data format'}), 400
+    
     tenant = User.query.get(data['tenant_id'])
     
     if not tenant or tenant.role != 'tenant':
         return jsonify({'error': 'Yanlış icarədar ID'}), 400
         
-    # Calculate overall rating as average of components
-    overall_rating = sum([
-        data.get('payment_discipline', 0),
-        data.get('property_care', 0),
-        data.get('communication', 0),
-        data.get('neighbor_relations', 0),
-        data.get('contract_compliance', 0)
-    ]) / 5
-    
-    rating = Rating(
-        rater_id=current_user.id,
-        ratee_id=tenant.id,
-        rating=round(overall_rating),
-        payment_discipline=data.get('payment_discipline'),
-        property_care=data.get('property_care'),
-        communication=data.get('communication'),
-        neighbor_relations=data.get('neighbor_relations'),
-        contract_compliance=data.get('contract_compliance'),
-        review=data.get('review', '')
-    )
-    
-    db.session.add(rating)
-    db.session.commit()
-    
-    # Update tenant score
-    update_tenant_score(tenant.id)
-    
-    return jsonify({'message': 'Qiymətləndirmə uğurla əlavə edildi'})
+    try:
+        # Calculate overall rating as average of components
+        overall_rating = sum([
+            data.get('reliability', 0),  # Payment discipline
+            data.get('responsibility', 0),  # Property care
+            data.get('communication', 0),
+            data.get('respect', 0),  # Neighbor relations
+            data.get('compliance', 0)  # Contract compliance
+        ]) / 5
+        
+        rating = Rating(
+            rater_id=current_user.id,
+            ratee_id=tenant.id,
+            rating=round(overall_rating),
+            reliability=data.get('reliability'),
+            responsibility=data.get('responsibility'),
+            communication=data.get('communication'),
+            respect=data.get('respect'),
+            compliance=data.get('compliance'),
+            review=data.get('review', '')
+        )
+        
+        db.session.add(rating)
+        db.session.commit()
+        
+        # Update tenant score
+        update_tenant_score(tenant.id)
+        
+        return jsonify({'message': 'Qiymətləndirmə uğurla əlavə edildi'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 @ratings_bp.route('/rate-landlord', methods=['POST'])
 @login_required
-@csrf_exempt
 def rate_landlord():
+    if current_user.role != 'tenant':
+        return jsonify({'error': 'Only tenants can rate landlords'}), 403
+    
+    data = request.get_json()
+    
+    # Validate required fields
+    required_fields = [
+        'landlord_id', 'property_id', 'reliability', 'responsibility',
+        'communication', 'compliance', 'respect'
+    ]
+    
+    if not all(field in data for field in required_fields):
+        return jsonify({'error': 'Missing required fields'}), 400
+    
     try:
-        if current_user.role != 'tenant':
-            return jsonify({'error': 'Yalnız icarədarlar mülk sahiblərini qiymətləndirə bilər'}), 403
-            
-        data = request.get_json()
-        if not data:
-            return jsonify({'error': 'Məlumatlar düzgün formatda deyil'}), 400
-            
-        landlord = User.query.get(data['landlord_id'])
-        
-        if not landlord or landlord.role != 'landlord':
-            return jsonify({'error': 'Yanlış mülk sahibi ID'}), 400
-            
-        # Calculate overall rating as average of components
-        overall_rating = sum([
-            data.get('property_accuracy', 0),
-            data.get('contract_transparency', 0),
-            data.get('support_communication', 0),
-            data.get('maintenance', 0),
-            data.get('privacy_respect', 0)
+        # Calculate average rating
+        rating_value = sum([
+            data['reliability'],  # Property accuracy
+            data['responsibility'],  # Contract transparency
+            data['communication'],  # Support communication
+            data['compliance'],  # Maintenance
+            data['respect']  # Privacy respect
         ]) / 5
         
-        # Check if user has already rated this landlord
-        existing_rating = Rating.query.filter_by(
+        # Create rating
+        rating = Rating(
             rater_id=current_user.id,
-            ratee_id=landlord.id
-        ).first()
+            ratee_id=data['landlord_id'],
+            property_id=data['property_id'],
+            rating=rating_value,
+            reliability=data['reliability'],  # Property accuracy
+            responsibility=data['responsibility'],  # Contract transparency
+            communication=data['communication'],
+            compliance=data['compliance'],  # Maintenance
+            respect=data['respect'],  # Privacy respect
+            review=data.get('review', '')
+        )
         
-        if existing_rating:
-            # Update existing rating
-            existing_rating.rating = round(overall_rating)
-            existing_rating.property_accuracy = data.get('property_accuracy')
-            existing_rating.contract_transparency = data.get('contract_transparency')
-            existing_rating.support_communication = data.get('support_communication')
-            existing_rating.maintenance = data.get('maintenance')
-            existing_rating.privacy_respect = data.get('privacy_respect')
-            existing_rating.review = data.get('review', '')
-        else:
-            # Create new rating
-            rating = Rating(
-                rater_id=current_user.id,
-                ratee_id=landlord.id,
-                rating=round(overall_rating),
-                property_accuracy=data.get('property_accuracy'),
-                contract_transparency=data.get('contract_transparency'),
-                support_communication=data.get('support_communication'),
-                maintenance=data.get('maintenance'),
-                privacy_respect=data.get('privacy_respect'),
-                review=data.get('review', '')
-            )
-            db.session.add(rating)
-        
+        db.session.add(rating)
         db.session.commit()
-        return jsonify({'message': 'Qiymətləndirmə uğurla əlavə edildi'})
+        
+        return jsonify({'message': 'Rating submitted successfully'})
         
     except Exception as e:
         db.session.rollback()
-        print(f"Error in rate_landlord: {str(e)}")  # For debugging
-        return jsonify({'error': 'Qiymətləndirmə zamanı xəta baş verdi'}), 500
+        return jsonify({'error': str(e)}), 500
 
 @ratings_bp.route('/ratings/<user_id>', methods=['GET'])
 @login_required
@@ -161,16 +153,44 @@ def get_user_ratings(user_id):
         'review': r.review,
         'rater_name': r.rater.name,
         'created_at': r.created_at.isoformat(),
-        'payment_discipline': r.payment_discipline,
-        'property_care': r.property_care,
+        'reliability': r.reliability,  # payment_discipline for tenants
+        'responsibility': r.responsibility,  # property_care for tenants
         'communication': r.communication,
-        'neighbor_relations': r.neighbor_relations,
-        'contract_compliance': r.contract_compliance,
-        'property_accuracy': r.property_accuracy,
-        'contract_transparency': r.contract_transparency,
-        'support_communication': r.support_communication,
-        'maintenance': r.maintenance,
-        'privacy_respect': r.privacy_respect
+        'respect': r.respect,  # neighbor_relations for tenants
+        'compliance': r.compliance,  # contract_compliance for tenants
+        'property': {
+            'title': r.property.title,
+            'address': r.property.address
+        } if r.property else None
+    } for r in ratings]
+    
+    return jsonify(ratings_data)
+
+@ratings_bp.route('/ratings/given/<user_id>', methods=['GET'])
+@login_required
+def get_user_given_ratings(user_id):
+    """Get ratings given by a user, grouped by property"""
+    ratings = Rating.query.filter_by(rater_id=user_id).all()
+    
+    ratings_data = [{
+        'id': r.id,
+        'property': {
+            'id': r.property.id,
+            'title': r.property.title,
+            'address': r.property.address
+        } if r.property else None,
+        'landlord': {
+            'name': r.ratee.name,
+            'email': r.ratee.email
+        },
+        'rating': r.rating,
+        'reliability': r.reliability,  # Property accuracy
+        'responsibility': r.responsibility,  # Contract transparency
+        'communication': r.communication,
+        'compliance': r.compliance,  # Maintenance
+        'respect': r.respect,  # Privacy respect
+        'review': r.review,
+        'created_at': r.created_at.isoformat()
     } for r in ratings]
     
     return jsonify(ratings_data) 

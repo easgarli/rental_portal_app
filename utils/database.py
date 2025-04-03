@@ -321,17 +321,154 @@ def _format_value(value, type_name):
             return None
     return value
 
+def table_exists(conn, table_name):
+    """Check if a table exists"""
+    result = conn.execute(db.text(
+        "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = :table)"
+    ), {'table': table_name})
+    return result.scalar()
+
+def create_backup(conn):
+    """Create a backup of all tables"""
+    backup = {}
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    
+    # Get all tables
+    tables = ['users', 'properties', 'ratings', 'tenant_scores']
+    
+    for table in tables:
+        result = conn.execute(db.text(f"SELECT * FROM {table}"))
+        rows = [dict(row) for row in result]
+        print(f"Backed up {len(rows)} rows from {table}")
+        backup[table] = rows
+    
+    # Add metadata
+    backup['metadata'] = {
+        'schema_version': 2,  # Increment this when schema changes
+        'timestamp': timestamp,
+        'tables': tables
+    }
+    
+    # Save to file in the backups folder
+    filename = f'backups/backup_{timestamp}.json'
+    with open(filename, 'w') as f:
+        json.dump(backup, f, default=str)
+    
+    return filename
+
+def restore_data(conn, backup):
+    """Restore data from backup with column name mapping"""
+    # Define column mappings for renamed columns
+    rating_column_map = {
+        'property_accuracy': 'reliability',
+        'contract_transparency': 'responsibility',
+        'support_communication': 'communication',
+        'maintenance': 'compliance',
+        'privacy_respect': 'respect'
+    }
+
+    for table, rows in backup.items():
+        # Skip metadata and empty tables
+        if table == 'metadata' or not isinstance(rows, list) or not rows:
+            continue
+            
+        # Get the columns from the first row
+        columns = list(rows[0].keys())
+        
+        # If this is the ratings table, map old column names to new ones
+        if table == 'ratings':
+            # Replace old column names with new ones
+            mapped_columns = []
+            for col in columns:
+                if col in rating_column_map:
+                    mapped_columns.append(rating_column_map[col])
+                else:
+                    mapped_columns.append(col)
+            columns = mapped_columns
+
+        for row in rows:
+            # Map old column names to new ones for ratings table
+            if table == 'ratings':
+                mapped_row = {}
+                for old_col, value in row.items():
+                    new_col = rating_column_map.get(old_col, old_col)
+                    mapped_row[new_col] = value
+                row = mapped_row
+
+            placeholders = ', '.join([':' + col for col in columns])
+            columns_str = ', '.join(columns)
+            
+            query = f"INSERT INTO {table} ({columns_str}) VALUES ({placeholders})"
+            try:
+                conn.execute(db.text(query), row)
+            except Exception as e:
+                print(f"Error restoring row in {table}: {str(e)}")
+                print(f"Row data: {row}")
+                continue  # Skip failed rows but continue with others
+
 def reset_db():
-    """Drop all tables and recreate them"""
+    """Drop all tables and recreate them with backup option"""
     target_db = os.getenv('POSTGRES_DB')
     print(f"WARNING: This will reset all tables in database '{target_db}'")
-    confirm = input("Are you sure you want to continue? (yes/no): ")
     
+    backup_file = None
+    with db.engine.connect() as conn:
+        if table_exists(conn, 'users'):  # Check if database is initialized
+            backup_choice = input("Would you like to backup existing data? (yes/no): ")
+            if backup_choice.lower() == 'yes':
+                backup_file = create_backup(conn)
+                if backup_file:
+                    print(f"Data backed up to {backup_file}")
+    
+    confirm = input("Are you sure you want to continue with reset? (yes/no): ")
     if confirm.lower() != 'yes':
         print("Database reset cancelled.")
         return
         
     print(f"Resetting database '{target_db}'...")
-    db.drop_all()
+    
+    with db.engine.connect() as conn:
+        # Start a transaction
+        with conn.begin():
+            # Drop existing tables and types
+            conn.execute(db.text("DROP TABLE IF EXISTS users CASCADE"))
+            conn.execute(db.text("DROP TABLE IF EXISTS ratings CASCADE"))
+            conn.execute(db.text("DROP TABLE IF EXISTS tenant_scores CASCADE"))
+            conn.execute(db.text("DROP TABLE IF EXISTS properties CASCADE"))
+            conn.execute(db.text("DROP TYPE IF EXISTS user_roles CASCADE"))
+            conn.execute(db.text("DROP TYPE IF EXISTS property_status CASCADE"))
+            
+            # Create enum types
+            conn.execute(db.text("CREATE TYPE user_roles AS ENUM ('tenant', 'landlord', 'admin')"))
+            conn.execute(db.text("CREATE TYPE property_status AS ENUM ('available', 'rented', 'unavailable')"))
+    
+    # Create tables
     db.create_all()
-    print("Database reset completed successfully!")
+    
+    # Restore data if backup exists and has data
+    if backup_file and os.path.exists(backup_file):
+        restore_choice = input("Would you like to restore the backed up data? (yes/no): ")
+        if restore_choice.lower() == 'yes':
+            with open(backup_file, 'r') as f:
+                backup = json.load(f)
+            
+            # Check if backup has any data
+            has_data = any(
+                isinstance(rows, list) and len(rows) > 0 
+                for table, rows in backup.items() 
+                if table != 'metadata'
+            )
+            
+            if not has_data:
+                print("No data to restore in backup.")
+                return
+            
+            with db.engine.connect() as conn:
+                with conn.begin():
+                    try:
+                        restore_data(conn, backup)
+                        print("Data restored successfully!")
+                    except Exception as e:
+                        print(f"Error during restore: {str(e)}")
+                        print("Rolling back changes...")
+                        raise

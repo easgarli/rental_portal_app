@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Admin Panel</h2>
+    
+    <!-- Users Table -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs">
+                <li class="nav-item">
+                    <a class="nav-link active" data-bs-toggle="tab" href="#all-users">Bütün İstifadəçilər</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#ratings">Rəylər</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#tenants">İcarədarlar</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#landlords">Mülk Sahibləri</a>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="all-users">
+                    <div class="table-responsive">
+                        <table class="table" id="users-table">
+                            <thead>
+                                <tr>
+                                    <th>Ad</th>
+                                    <th>Email</th>
+                                    <th>Rol</th>
+                                    <th>Qeydiyyat Tarixi</th>
+                                    <th>Aldığı Rəylər</th>
+                                    <th>Verdiyi Rəylər</th>
+                                    <th>Əməliyyatlar</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Filled by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="ratings">
+                    <div class="table-responsive">
+                        <table class="table" id="ratings-table">
+                            <thead>
+                                <tr>
+                                    <th>Tarix</th>
+                                    <th>Rəy Verən</th>
+                                    <th>Rəy Alan</th>
+                                    <th>Əmlak</th>
+                                    <th>Ümumi Reytinq</th>
+                                    <th>Ətraflı Reytinqlər</th>
+                                    <th>Rəy</th>
+                                    <th>Əməliyyatlar</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Filled by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="tenants">
+                    <div class="table-responsive">
+                        <table class="table" id="tenants-table">
+                            <thead>
+                                <tr>
+                                    <th>Ad</th>
+                                    <th>Email</th>
+                                    <th>Qeydiyyat Tarixi</th>
+                                    <th>TenantScore</th>
+                                    <th>Aldığı Rəylər</th>
+                                    <th>Verdiyi Rəylər</th>
+                                    <th>Əməliyyatlar</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Filled by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="landlords">
+                    <div class="table-responsive">
+                        <table class="table" id="landlords-table">
+                            <thead>
+                                <tr>
+                                    <th>Ad</th>
+                                    <th>Email</th>
+                                    <th>Qeydiyyat Tarixi</th>
+                                    <th>Əmlak Sayı</th>
+                                    <th>Orta Reytinq</th>
+                                    <th>Aldığı Rəylər</th>
+                                    <th>Verdiyi Rəylər</th>
+                                    <th>Əməliyyatlar</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Filled by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function deleteUser(userId) {
+    if (!confirm('Bu istifadəçini silmək istədiyinizə əminsiniz?')) {
+        return;
+    }
+    
+    fetch(`/api/admin/users/${userId}`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': getCsrfToken()
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => {
+                throw new Error(err.error || 'İstifadəçini silmək mümkün olmadı');
+            });
+        }
+        return response.json();
+    })
+    .then(() => {
+        loadUsers();  // Reload the users table
+        alert('İstifadəçi uğurla silindi');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert(error.message);
+    });
+}
+
+function loadUsers() {
+    fetch('/api/admin/users')
+        .then(response => response.json())
+        .then(users => {
+            const tbody = document.querySelector('#users-table tbody');
+            tbody.innerHTML = users.map(user => `
+                <tr>
+                    <td>${user.name}</td>
+                    <td>${user.email}</td>
+                    <td><span class="badge bg-${user.role === 'tenant' ? 'primary' : user.role === 'admin' ? 'danger' : 'success'}">${user.role}</span></td>
+                    <td>${new Date(user.created_at).toLocaleDateString('az-AZ')}</td>
+                    <td>${user.ratings_received}</td>
+                    <td>${user.ratings_given}</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning" onclick="viewUser('${user.id}')">Bax</button>
+                        ${user.role !== 'admin' ? `<button class="btn btn-sm btn-danger" onclick="deleteUser('${user.id}')">Sil</button>` : ''}
+                    </td>
+                </tr>
+            `).join('');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('İstifadəçiləri yükləmək mümkün olmadı');
+        });
+}
+
+function loadRatings() {
+    fetch('/api/admin/ratings')
+        .then(response => response.json())
+        .then(ratings => {
+            const tbody = document.querySelector('#ratings-table tbody');
+            tbody.innerHTML = ratings.map(rating => `
+                <tr>
+                    <td>${new Date(rating.created_at).toLocaleDateString('az-AZ')}</td>
+                    <td>${rating.rater_name}</td>
+                    <td>${rating.ratee_name}</td>
+                    <td>${rating.property_title || 'N/A'}</td>
+                    <td>
+                        <span class="badge bg-${getRatingColor(rating.average_rating)}">
+                            ${rating.average_rating.toFixed(1)} ★
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-info" onclick="showRatingDetails(${JSON.stringify(rating)})">
+                            Ətraflı
+                        </button>
+                    </td>
+                    <td>${rating.review || 'Rəy yoxdur'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" onclick="deleteRating('${rating.id}')">Sil</button>
+                    </td>
+                </tr>
+            `).join('');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Rəyləri yükləmək mümkün olmadı');
+        });
+}
+
+function getRatingColor(rating) {
+    if (rating >= 4.5) return 'success';
+    if (rating >= 3.5) return 'info';
+    if (rating >= 2.5) return 'warning';
+    return 'danger';
+}
+
+function showRatingDetails(rating) {
+    const details = `
+        Etibarlılıq: ${rating.reliability || 'N/A'} ★
+        Məsuliyyət: ${rating.responsibility || 'N/A'} ★
+        Ünsiyyət: ${rating.communication || 'N/A'} ★
+        Uyğunluq: ${rating.compliance || 'N/A'} ★
+        Hörmət: ${rating.respect || 'N/A'} ★
+    `;
+    alert(details);
+}
+
+function deleteRating(ratingId) {
+    if (!confirm('Bu rəyi silmək istədiyinizə əminsiniz?')) {
+        return;
+    }
+    
+    fetch(`/api/admin/ratings/${ratingId}`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': getCsrfToken()
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => {
+                throw new Error(err.error || 'Rəyi silmək mümkün olmadı');
+            });
+        }
+        return response.json();
+    })
+    .then(() => {
+        loadRatings();
+        alert('Rəy uğurla silindi');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert(error.message);
+    });
+}
+
+function loadTenants() {
+    fetch('/api/admin/users')
+        .then(response => response.json())
+        .then(users => {
+            const tenants = users.filter(user => user.role === 'tenant');
+            const tbody = document.querySelector('#tenants-table tbody');
+            tbody.innerHTML = tenants.map(tenant => `
+                <tr>
+                    <td>${tenant.name}</td>
+                    <td>${tenant.email}</td>
+                    <td>${new Date(tenant.created_at).toLocaleDateString('az-AZ')}</td>
+                    <td>${tenant.tenant_score ? tenant.tenant_score.toFixed(1) : 'N/A'}</td>
+                    <td>${tenant.ratings_received}</td>
+                    <td>${tenant.ratings_given}</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning" onclick="viewUser('${tenant.id}')">Bax</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteUser('${tenant.id}')">Sil</button>
+                    </td>
+                </tr>
+            `).join('');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('İcarədarları yükləmək mümkün olmadı');
+        });
+}
+
+function loadLandlords() {
+    fetch('/api/admin/users')
+        .then(response => response.json())
+        .then(users => {
+            const landlords = users.filter(user => user.role === 'landlord');
+            const tbody = document.querySelector('#landlords-table tbody');
+            tbody.innerHTML = landlords.map(landlord => `
+                <tr>
+                    <td>${landlord.name}</td>
+                    <td>${landlord.email}</td>
+                    <td>${new Date(landlord.created_at).toLocaleDateString('az-AZ')}</td>
+                    <td>${landlord.properties_count || 0}</td>
+                    <td>
+                        <span class="badge bg-${getRatingColor(landlord.avg_rating || 0)}">
+                            ${(landlord.avg_rating || 0).toFixed(1)} ★
+                        </span>
+                    </td>
+                    <td>${landlord.ratings_received}</td>
+                    <td>${landlord.ratings_given}</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning" onclick="viewUser('${landlord.id}')">Bax</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteUser('${landlord.id}')">Sil</button>
+                    </td>
+                </tr>
+            `).join('');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Mülk sahiblərini yükləmək mümkün olmadı');
+        });
+}
+
+// Update the tab change event listener
+document.querySelectorAll('a[data-bs-toggle="tab"]').forEach(tab => {
+    tab.addEventListener('show.bs.tab', event => {
+        const target = event.target.getAttribute('href');
+        if (target === '#tenants') {
+            loadTenants();
+        } else if (target === '#landlords') {
+            loadLandlords();
+        } else if (target === '#ratings') {
+            loadRatings();
+        }
+    });
+});
+
+// Initial loads
+loadUsers();
+</script>
+{% endblock %}
