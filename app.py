@@ -70,9 +70,15 @@ def create_app():
     def load_user(user_id):
         return User.query.get(user_id)
 
-    @app.before_first_request
-    def create_tables():
-        db.create_all()
+    with app.app_context():
+        # Check if any of our tables exist
+        inspector = db.inspect(db.engine)
+        if not inspector.has_table('users'):  # Check for a core table
+            print("Creating database tables...")
+            db.create_all()
+            print("Database tables created!")
+        else:
+            print("Database tables already exist!")
 
     # Main routes
     @app.route('/')
