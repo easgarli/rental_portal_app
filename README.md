@@ -74,7 +74,7 @@ Rental Portal is a sophisticated platform designed to bring transparency and tru
 
 1. Clone the repository:
     ```bash
-    git clone https://github.com/yourusername/rental-portal.git
+    git clone https://github.com/easgarli/rental-portal.git
     cd rental-portal
     ```
 

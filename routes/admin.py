@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, jsonify, abort
 from flask_login import login_required, current_user
 from models import db, User, Property, Rating, TenantScore, TenantQuestionnaire
 from functools import wraps
+from utils.database import DatabaseManager, DatabaseConfig
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -34,9 +35,32 @@ def get_users():
         'ratings_given': len(user.ratings_given),
         'tenant_score': user.tenant_score.total_score if user.tenant_score else None,
         'properties_count': len(user.properties) if hasattr(user, 'properties') else 0,
-        'avg_rating': sum(r.rating for r in user.ratings_received) / len(user.ratings_received) 
-            if user.ratings_received else 0
+        'avg_rating': calculate_avg_rating(user.ratings_received) if user.ratings_received else 0
     } for user in users])
+
+def calculate_avg_rating(ratings):
+    """Calculate average rating from all rating dimensions"""
+    if not ratings:
+        return 0
+        
+    total_sum = 0
+    total_count = 0
+    
+    for rating in ratings:
+        dimensions = [
+            rating.reliability,
+            rating.responsibility,
+            rating.communication,
+            rating.compliance,
+            rating.respect
+        ]
+        # Filter out None values
+        valid_dimensions = [r for r in dimensions if r is not None]
+        if valid_dimensions:
+            total_sum += sum(valid_dimensions)
+            total_count += len(valid_dimensions)
+    
+    return round(total_sum / total_count, 2) if total_count > 0 else 0
 
 @admin_bp.route('/api/admin/users/<user_id>', methods=['DELETE'])
 @login_required
@@ -156,4 +180,63 @@ def delete_credit_score(score_id):
         return jsonify({'message': 'Credit score deleted successfully'})
     except Exception as e:
         db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/api/admin/databases')
+@login_required
+@admin_required
+def get_databases():
+    """Get list of all databases"""
+    try:
+        with db.engine.connect() as conn:
+            result = conn.execute(db.text("""
+                SELECT datname FROM pg_database 
+                WHERE datistemplate = false 
+                ORDER BY datname;
+            """))
+            databases = [row[0] for row in result]
+            return jsonify(databases)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/api/admin/tables/<database>')
+@login_required
+@admin_required
+def get_tables(database):
+    """Get all tables in a database"""
+    try:
+        with db.engine.connect() as conn:
+            result = conn.execute(db.text("""
+                SELECT table_name, table_type 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public'
+                ORDER BY table_name;
+            """))
+            tables = [{'name': row[0], 'type': row[1]} for row in result]
+            return jsonify(tables)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/api/admin/columns/<table>')
+@login_required
+@admin_required
+def get_columns(table):
+    """Get column information for a table"""
+    try:
+        with db.engine.connect() as conn:
+            result = conn.execute(db.text("""
+                SELECT column_name, data_type, is_nullable, column_default
+                FROM information_schema.columns
+                WHERE table_name = :table
+                AND table_schema = 'public'
+                ORDER BY ordinal_position;
+            """), {'table': table})
+            columns = [{
+                'name': row[0],
+                'type': row[1],
+                'nullable': row[2],
+                'default': row[3]
+            } for row in result]
+            return jsonify(columns)
+    except Exception as e:
         return jsonify({'error': str(e)}), 500 

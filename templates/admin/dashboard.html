@@ -25,6 +25,9 @@
                 <li class="nav-item">
                     <a class="nav-link" data-bs-toggle="tab" href="#credit-scores">Kredit Skorları</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#database">Verilənlər Bazası</a>
+                </li>
             </ul>
         </div>
         <div class="card-body">
@@ -132,6 +135,63 @@
                                 <!-- Filled by JavaScript -->
                             </tbody>
                         </table>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="database">
+                    <div class="row">
+                        <!-- Database List -->
+                        <div class="col-md-3">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Verilənlər Bazaları</h5>
+                                </div>
+                                <div class="card-body p-0">
+                                    <ul class="list-group list-group-flush" id="database-list">
+                                        <!-- Filled by JavaScript -->
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tables List -->
+                        <div class="col-md-3">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Cədvəllər</h5>
+                                </div>
+                                <div class="card-body p-0">
+                                    <ul class="list-group list-group-flush" id="tables-list">
+                                        <!-- Filled by JavaScript -->
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Column Details -->
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Sütunlar</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table" id="columns-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Ad</th>
+                                                    <th>Tip</th>
+                                                    <th>Boş ola bilər</th>
+                                                    <th>Defolt</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <!-- Filled by JavaScript -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -411,11 +471,90 @@ document.querySelectorAll('a[data-bs-toggle="tab"]').forEach(tab => {
             loadRatings();
         } else if (target === '#credit-scores') {
             loadCreditScores();
+        } else if (target === '#database') {
+            loadDatabases();
         }
     });
 });
 
 // Initial loads
 loadUsers();
+
+let currentDatabase = null;
+let currentTable = null;
+
+function loadDatabases() {
+    fetch('/api/admin/databases')
+        .then(response => response.json())
+        .then(databases => {
+            const list = document.getElementById('database-list');
+            list.innerHTML = databases.map(db => `
+                <li class="list-group-item list-group-item-action" 
+                    onclick="selectDatabase('${db}')">
+                    <i class="fas fa-database me-2"></i>${db}
+                </li>
+            `).join('');
+        })
+        .catch(error => {
+            console.error('Error loading databases:', error);
+            alert('Verilənlər bazalarını yükləmək mümkün olmadı');
+        });
+}
+
+function selectDatabase(dbName) {
+    currentDatabase = dbName;
+    // Highlight selected database
+    document.querySelectorAll('#database-list li').forEach(li => {
+        li.classList.remove('active');
+        if (li.textContent.trim() === dbName) {
+            li.classList.add('active');
+        }
+    });
+    
+    fetch(`/api/admin/tables/${dbName}`)
+        .then(response => response.json())
+        .then(tables => {
+            const list = document.getElementById('tables-list');
+            list.innerHTML = tables.map(table => `
+                <li class="list-group-item list-group-item-action" 
+                    onclick="selectTable('${table.name}')">
+                    <i class="fas fa-table me-2"></i>${table.name}
+                </li>
+            `).join('');
+        })
+        .catch(error => {
+            console.error('Error loading tables:', error);
+            alert('Cədvəlləri yükləmək mümkün olmadı');
+        });
+}
+
+function selectTable(tableName) {
+    currentTable = tableName;
+    // Highlight selected table
+    document.querySelectorAll('#tables-list li').forEach(li => {
+        li.classList.remove('active');
+        if (li.textContent.trim() === tableName) {
+            li.classList.add('active');
+        }
+    });
+    
+    fetch(`/api/admin/columns/${tableName}`)
+        .then(response => response.json())
+        .then(columns => {
+            const tbody = document.querySelector('#columns-table tbody');
+            tbody.innerHTML = columns.map(col => `
+                <tr>
+                    <td>${col.name}</td>
+                    <td>${col.type}</td>
+                    <td>${col.nullable}</td>
+                    <td>${col.default || '-'}</td>
+                </tr>
+            `).join('');
+        })
+        .catch(error => {
+            console.error('Error loading columns:', error);
+            alert('Sütunları yükləmək mümkün olmadı');
+        });
+}
 </script>
 {% endblock %}
