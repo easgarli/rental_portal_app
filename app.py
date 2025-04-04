@@ -66,6 +66,9 @@ def create_app():
     app.register_blueprint(admin_bp)
     app.register_blueprint(questionnaire_bp)
 
+    # Add this near the top of create_app()
+    app.template_folder = 'templates'
+
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(user_id)
@@ -88,12 +91,17 @@ def create_app():
     @app.route('/dashboard')
     @login_required
     def dashboard():
-        if current_user.role == 'admin':
-            return redirect(url_for('admin.admin_dashboard'))
-        if current_user.role == 'tenant':
-            return render_template('dashboard/tenant.html')
-        else:
-            return render_template('dashboard/landlord.html')
+        try:
+            if current_user.role == 'admin':
+                return redirect(url_for('admin.admin_dashboard'))
+            if current_user.role == 'tenant':
+                print(f"User role: {current_user.role}")  # Debug print
+                return render_template('dashboard/tenant.html')
+            else:
+                return render_template('dashboard/landlord.html')
+        except Exception as e:
+            print(f"Dashboard error: {str(e)}")  # Debug print
+            return render_template('error.html', error=str(e)), 500
 
     @app.route('/about')
     def about():
