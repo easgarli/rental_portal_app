@@ -99,6 +99,7 @@ def create_app():
     def about():
         return render_template('about.html')
 
+
     return app
 
 if __name__ == '__main__':
