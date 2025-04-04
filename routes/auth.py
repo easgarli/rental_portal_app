@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, render_template, flash, redirect,
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User
+from werkzeug.urls import url_parse
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -54,8 +55,10 @@ def login():
     
     if user and check_password_hash(user.password_hash, data['password']):
         login_user(user)
-        flash('Logged in successfully!', 'success')
-        return redirect(url_for('dashboard'))
+        next_page = request.args.get('next')
+        if not next_page or url_parse(next_page).netloc != '':
+            next_page = url_for('dashboard')
+        return redirect(next_page)
     
     flash('Invalid email or password', 'danger')
     return redirect(url_for('auth.login'))
