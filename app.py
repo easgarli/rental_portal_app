@@ -112,4 +112,5 @@ def create_app():
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(debug=True) 
+    # run the app in debug mode with host 0.0.0.0 and port 8500
+    app.run(host='0.0.0.0', port=8500, debug=True) 
