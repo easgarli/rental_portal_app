@@ -11,7 +11,7 @@ sudo mkdir -p /var/www/rental_portal_app
 sudo chown www-data:www-data /var/www/rental_portal_app
 
 # Clone the repository
-sudo -u www-data git clone https://github.com/yourusername/rental-portal.git /var/www/rental_portal_app
+sudo -u www-data git clone https://github.com/easgarli/rental-portal.git /var/www/rental_portal_app
 
 # Create and activate virtual environment
 cd /var/www/rental_portal_app
@@ -22,18 +22,8 @@ source venv/bin/activate
 pip install -r requirements.txt
 pip install gunicorn
 
-# Create wsgi.py file
-cat > wsgi.py << EOL
-from app import create_app
-
-app = create_app()
-
-if __name__ == "__main__":
-    app.run()
-EOL
-
 # Create systemd service file
-cat > /etc/systemd/system/rental-portal.service << EOL
+cat > /etc/systemd/system/rental-portal.service << EOL                                                           
 [Unit]
 Description=Gunicorn instance to serve Rental Portal application
 After=network.target
@@ -43,40 +33,39 @@ User=www-data
 Group=www-data
 WorkingDirectory=/var/www/rental_portal_app
 Environment="PATH=/var/www/rental_portal_app/venv/bin"
-ExecStart=/var/www/rental_portal_app/venv/bin/gunicorn --workers 3 --bind unix:rental-portal.sock -m 007 wsgi:app
+ExecStart=/var/www/rental_portal_app/venv/bin/gunicorn --workers 3 -b 127.0.0.1:6066 "app:create_app()" --forwarded-allow-ips='*'
 
 [Install]
 WantedBy=multi-user.target
+
 EOL
 
 # Create Nginx configuration
 cat > /etc/nginx/sites-available/rent-a-home.tft.az << EOL
 server {
-    listen 80;
     server_name rent-a-home.tft.az;
-
-    location = /favicon.ico { 
-        access_log off; 
-        log_not_found off; 
+    location = /favicon.ico {
+        access_log off;
+        log_not_found off;
     }
-
     location /static/ {
         root /var/www/rental_portal_app;
     }
-
     location / {
-        include proxy_params;
-        proxy_pass http://unix:/var/www/rental_portal_app/rental-portal.sock;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_set_header Host \$http_host;
-        proxy_buffering off;
-        proxy_redirect off;
+        proxy_pass http://127.0.0.1:6066;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
-
     access_log /var/log/nginx/rental-portal-access.log;
     error_log /var/log/nginx/rental-portal-error.log;
+
+}
+server {
+    listen 80;
+    server_name rent-a-home.tft.az;
+    return 301 https://$host$request_uri;
 }
 EOL
 
