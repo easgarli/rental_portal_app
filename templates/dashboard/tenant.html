@@ -17,7 +17,7 @@
 
 <div class="container mt-4">
     <h1>Xoş gəlmisiniz, {{ current_user.name }}</h1>
-    <div class="row">
+<div class="row">
         <div class="col-md-6">
             <div id="tenant-score">
                 <!-- Tenant score will be loaded here -->
@@ -44,13 +44,13 @@
                 <a class="nav-link active" data-bs-toggle="tab" href="#scores" role="tab">Skorlarınız</a>
             </li>
             <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#personal-info" role="tab">Şəxsi Məlumatlar</a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link" data-bs-toggle="tab" href="#received-ratings" role="tab">Aldığınız Qiymətləndirmələr</a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" data-bs-toggle="tab" href="#given-ratings" role="tab">Verdiyiniz Qiymətləndirmələr</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" data-bs-toggle="tab" href="#rate-landlord" role="tab">İcarəyə verəni qiymətləndir</a>
             </li>
         </ul>
     </div>
@@ -114,6 +114,73 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Personal Info Tab -->
+            <div class="tab-pane fade" id="personal-info">
+                <div class="contract-info-section">
+                    {% if current_user.contract_info %}
+                        {% set info = current_user.contract_info[0] %}
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="fas fa-user-circle"></i> Şəxsi Məlumatlarınız</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="info-group">
+                                            <label class="info-label">Ad Soyad Ata adı</label>
+                                            <p class="info-value">{{ info.first_name }} {{ info.last_name }} {{ info.father_name }}</p>
+                                        </div>
+                                        <div class="info-group">
+                                            <label class="info-label">Şəxsiyyət vəsiqəsi</label>
+                                            <p class="info-value">{{ info.id_number }}</p>
+                                        </div>
+                                        <div class="info-group">
+                                            <label class="info-label">FIN</label>
+                                            <p class="info-value">{{ info.fin }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="info-group">
+                                            <label class="info-label">Doğum yeri</label>
+                                            <p class="info-value">{{ info.birth_place }}</p>
+                                        </div>
+                                        <div class="info-group">
+                                            <label class="info-label">Doğum tarixi</label>
+                                            <p class="info-value">{{ info.birth_date.strftime('%d.%m.%Y') }}</p>
+                                        </div>
+                                        <div class="info-group">
+                                            <label class="info-label">Qeydiyyat ünvanı</label>
+                                            <p class="info-value">{{ info.address }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <button class="btn btn-outline-primary" onclick="editPersonalInfo()">
+                                        <i class="fas fa-edit"></i> Məlumatları yenilə
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="card">
+                            <div class="card-body text-center py-5">
+                                <div class="empty-state">
+                                    <i class="fas fa-user-edit fa-4x text-muted mb-3"></i>
+                                    <h4>Şəxsi məlumatlarınız qeyd edilməyib</h4>
+                                    <p class="text-muted">
+                                        Kirayə müqaviləsinin hazırlanması üçün şəxsi məlumatlarınızı qeyd etməyiniz vacibdir.
+                                        Bu, müqavilə prosesini sürətləndirəcək.
+                                    </p>
+                                    <a href="{{ url_for('applications.manage_tenant_info', application_id='new') }}" class="btn btn-primary">
+                                        <i class="fas fa-plus-circle"></i> Məlumatları daxil et
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -190,86 +257,51 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Rate Landlord Tab -->
-            <div class="tab-pane fade" id="rate-landlord">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">İcarəyə verəni qiymətləndir</h5>
-                        <form id="rate-landlord-form" method="POST">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                            <div class="mb-3">
-                                <label for="landlord-id" class="form-label">Mülk Sahibi</label>
-                                <select class="form-control" id="landlord-id" required>
-                                    <option value="">Mülk sahibi seçin</option>
-                                </select>
+                            </div>
+                            </div>
                             </div>
                             
-                            <div class="mb-3">
-                                <label for="property-id" class="form-label">Əmlak</label>
-                                <select class="form-control" id="property-id" required>
-                                    <option value="">Əvvəlcə mülk sahibini seçin</option>
-                                </select>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Əmlakın real vəziyyəti</label>
-                                <select class="form-control" name="reliability" required>
-                                    {% for i in range(5, 0, -1) %}
-                                    <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Müqavilə şəffaflığı</label>
-                                <select class="form-control" name="responsibility" required>
-                                    {% for i in range(5, 0, -1) %}
-                                    <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Ünsiyyət və dəstək</label>
-                                <select class="form-control" name="communication" required>
-                                    {% for i in range(5, 0, -1) %}
-                                    <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Təmir və texniki xidmət</label>
-                                <select class="form-control" name="compliance" required>
-                                    {% for i in range(5, 0, -1) %}
-                                    <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Gizlilik və hörmət</label>
-                                <select class="form-control" name="respect" required>
-                                    {% for i in range(5, 0, -1) %}
-                                    <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Rəy</label>
-                                <textarea class="form-control" name="review" rows="3"></textarea>
-                            </div>
-                            
-                            <button type="submit" class="btn btn-primary">Qiymətləndir</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+<style>
+    .contract-info-section {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    
+    .info-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .info-label {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-bottom: 0.25rem;
+    }
+    
+    .info-value {
+        font-size: 1rem;
+        color: #2c3e50;
+        margin-bottom: 0;
+        font-weight: 500;
+    }
+    
+    .empty-state {
+        padding: 2rem;
+    }
+    
+    .empty-state i {
+        color: #6c757d;
+    }
+    
+    .empty-state h4 {
+        margin: 1rem 0;
+        color: #2c3e50;
+    }
+    
+    .empty-state p {
+        max-width: 500px;
+        margin: 0 auto 1.5rem;
+    }
+</style>
 
 <script>
 // Function to get CSRF token from meta tag
@@ -279,10 +311,40 @@ function getCsrfToken() {
 
 // Initialize gauges when the page loads
 document.addEventListener('DOMContentLoaded', function() {
-    // Load tenant score
-    loadTenantScore();
+    // Initialize rating modal first
+    ratingModal = new bootstrap.Modal(document.getElementById('ratingModal'));
 
-    // Load credit score
+    // Initialize Bootstrap tabs with event handlers
+    const tabElements = document.querySelectorAll('a[data-bs-toggle="tab"]');
+    tabElements.forEach(tab => {
+        tab.addEventListener('show.bs.tab', event => {
+            const target = event.target.getAttribute('href');
+            switch(target) {
+                case '#properties':
+                    loadProperties();
+                    break;
+                case '#applications':
+                    loadApplications();
+                    break;
+                case '#received-ratings':
+                    loadRatings();
+                    break;
+                case '#given-ratings':
+                    loadGivenRatings();
+                    break;
+                case '#personal-info':
+                    loadPersonalInfo();
+                    break;
+            }
+        });
+    });
+
+    // Initial load of data
+    loadProperties();
+    loadApplications();
+    loadRatings();
+    loadGivenRatings();
+    loadTenantScore();
     loadCreditScore();
     });
 
@@ -420,28 +482,6 @@ function loadRatings() {
         });
 }
 
-// Fetch landlords list when page loads
-fetch('/api/landlords')
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.json();
-    })
-    .then(landlords => {
-        const select = document.getElementById('landlord-id');
-        landlords.forEach(landlord => {
-            const option = document.createElement('option');
-            option.value = landlord.id;
-            option.textContent = `${landlord.name} (${landlord.email})`;
-            select.appendChild(option);
-        });
-    })
-    .catch(error => {
-        console.error('Error fetching landlords:', error);
-        alert('Mülk sahiblərinin siyahısını yükləmək mümkün olmadı');
-    });
-
 // Load properties when landlord is selected
 document.getElementById('landlord-id').addEventListener('change', function() {
     const landlordId = this.value;
@@ -496,7 +536,7 @@ async function loadGivenRatings() {
                             <p><strong>Əmlakın real vəziyyəti:</strong> ${formatRatingStars(rating.reliability)}</p>
                             <p><strong>Müqavilə şəffaflığı:</strong> ${formatRatingStars(rating.responsibility)}</p>
                             <p><strong>Ünsiyyət və dəstək:</strong> ${formatRatingStars(rating.communication)}</p>
-                        </div>
+                    </div>
                         <div class="col-md-6">
                             <p><strong>Təmir və texniki xidmət:</strong> ${formatRatingStars(rating.compliance)}</p>
                             <p><strong>Gizlilik və hörmət:</strong> ${formatRatingStars(rating.respect)}</p>
@@ -647,37 +687,51 @@ async function loadProperties() {
         const propertiesList = document.getElementById('properties-list');
         
         if (!properties.length) {
-            propertiesList.innerHTML = '<div class="col-12"><div class="alert alert-info">Hal-hazırda mövcud əmlak yoxdur</div></div>';
+            propertiesList.innerHTML = '<div class="alert alert-info">Hal-hazırda kirayə üçün əmlak yoxdur</div>';
             return;
         }
         
-        propertiesList.innerHTML = properties.map(property => `
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">${property.title}</h5>
-                        <p class="card-text">${property.description || 'Təsvir yoxdur'}</p>
-                        <ul class="list-unstyled">
-                            <li><strong>Qiymət:</strong> ${property.monthly_rent} AZN/ay</li>
-                            <li><strong>Ünvan:</strong> ${property.address}</li>
-                            <li><strong>Mövcudluq tarixi:</strong> ${new Date(property.available_from).toLocaleDateString('az-AZ')}</li>
-                        </ul>
-                    </div>
-                    <div class="card-footer">
-                        <button onclick="applyForProperty('${property.id}')" class="btn btn-primary">Müraciət et</button>
+        properties.forEach(property => {
+            const landlordRating = property.landlord.avg_rating || 0;
+            const ratingStars = '★'.repeat(Math.round(landlordRating)) + '☆'.repeat(5 - Math.round(landlordRating));
+            
+            const propertyCard = `
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas fa-user"></i> ${property.landlord.name}
+                                </div>
+                                <div class="text-warning" title="Mülk sahibinin reytinqi">
+                                    ${ratingStars} (${landlordRating.toFixed(1)})
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">${property.title}</h5>
+                            <p class="card-text">${property.description || ''}</p>
+                            <p class="mb-1"><strong>Qiymət:</strong> ${property.monthly_rent} AZN</p>
+                            <p class="mb-1"><strong>Ünvan:</strong> ${property.address}</p>
+                            <p class="mb-1"><strong>Sahə:</strong> ${property.area || 'Qeyd edilməyib'} m²</p>
+                            <button onclick="applyForRental('${property.id}')" class="btn btn-primary">
+                                Müraciət et
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+            propertiesList.innerHTML += propertyCard;
+        });
     } catch (error) {
         console.error('Error:', error);
         document.getElementById('properties-list').innerHTML = 
-            '<div class="col-12"><div class="alert alert-danger">Əmlakları yükləmək mümkün olmadı</div></div>';
+            '<div class="alert alert-danger">Əmlakları yükləmək mümkün olmadı</div>';
     }
 }
 
-// Apply for property function
-async function applyForProperty(propertyId) {
+// Apply for rental function
+async function applyForRental(propertyId) {
     try {
         const response = await fetch(`/apply/${propertyId}`, {
             method: 'POST',
@@ -743,14 +797,16 @@ async function loadApplications() {
                             </div>
                         </div>
                         <div class="col-md-6 text-end">
-                            ${app.contract_status === 'none' ? `
-                                <a href="/applications/${app.id}/tenant-info" class="btn btn-warning btn-sm">
-                                    <i class="fas fa-user-edit"></i> Şəxsi məlumatları daxil et
-                                </a>
-                            ` : app.contract_status === 'completed' ? `
-                                <a href="/applications/${app.id}/contract/download" class="btn btn-success btn-sm">
-                                    <i class="fas fa-download"></i> Müqaviləni yüklə
-                                </a>
+                            ${app.contract_status === 'completed' ? `
+                                <div class="btn-group">
+                                    <a href="/applications/${app.id}/contract/download" class="btn btn-success btn-sm">
+                                        <i class="fas fa-download"></i> Müqaviləni yüklə
+                                    </a>
+                                    <button onclick="openRatingModal('${app.property.landlord.id}', '${app.property.id}', '${app.property.landlord.name}', '${app.property.title}')" 
+                                            class="btn btn-primary btn-sm">
+                                        <i class="fas fa-star"></i> Qiymətləndir
+                                    </button>
+                                </div>
                             ` : app.status === 'approved' || app.status === 'pending_contract' ? `
                                 <a href="/applications/${app.id}/contract" class="btn btn-primary btn-sm">
                                     <i class="fas fa-file-signature"></i> Müqaviləyə bax
@@ -791,30 +847,6 @@ function getStatusText(status) {
     };
     return texts[status] || status;
 }
-
-// Update tab change event listener to refresh content
-document.querySelectorAll('a[data-bs-toggle="tab"]').forEach(tab => {
-    tab.addEventListener('show.bs.tab', event => {
-        const target = event.target.getAttribute('href');
-        if (target === '#properties') {
-            loadProperties();
-        } else if (target === '#applications') {
-            loadApplications();
-        } else if (target === '#received-ratings') {
-            loadRatings();
-        } else if (target === '#given-ratings') {
-            loadGivenRatings();
-        } else if (target === '#rate-landlord') {
-            loadGivenRatings();
-        }
-    });
-});
-
-// Initial load of all data
-loadProperties();
-loadApplications();
-loadRatings();
-loadGivenRatings();
 
 function getContractStatusColor(status) {
     const colors = {
@@ -918,12 +950,158 @@ async function loadCreditScore() {
         }
     } catch (error) {
         console.error('Error loading credit score:', error);
-        document.getElementById('credit-score-message').innerHTML = `
-            <a href="{{ url_for('questionnaire.questionnaire') }}" class="btn btn-primary">
-                Kredit skorunuzu hesablamaq üçün müraciət edin və daha yaxşı şərtlərlə mənzil kirayəyə götürün
-            </a>
-        `;
+            document.getElementById('credit-score-message').innerHTML = `
+                <a href="{{ url_for('questionnaire.questionnaire') }}" class="btn btn-primary">
+                    Kredit skorunuzu hesablamaq üçün müraciət edin və daha yaxşı şərtlərlə mənzil kirayəyə götürün
+                </a>
+            `;
+    }
+}
+
+function editPersonalInfo() {
+    window.location.href = "{{ url_for('applications.manage_tenant_info', application_id='new') }}";
+}
+
+// Load personal info function
+async function loadPersonalInfo() {
+    // No need to load data asynchronously since it's rendered server-side
+    // This function is just a placeholder for potential future updates
+    return;
+}
+
+function openRatingModal(landlordId, propertyId, landlordName, propertyTitle) {
+    if (!ratingModal) {
+        ratingModal = new bootstrap.Modal(document.getElementById('ratingModal'));
+    }
+    document.getElementById('landlordId').value = landlordId;
+    document.getElementById('propertyId').value = propertyId;
+    document.getElementById('landlordName').value = landlordName;
+    document.getElementById('propertyTitle').value = propertyTitle;
+    ratingModal.show();
+}
+
+async function submitRating() {
+    const form = document.getElementById('landlordRatingForm');
+    const formData = new FormData(form);
+    
+    try {
+        const response = await fetch('/rate-landlord', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({
+                landlord_id: formData.get('landlord_id'),
+                property_id: formData.get('property_id'),
+                reliability: parseInt(formData.get('reliability')),
+                responsibility: parseInt(formData.get('responsibility')),
+                communication: parseInt(formData.get('communication')),
+                compliance: parseInt(formData.get('compliance')),
+                respect: parseInt(formData.get('respect')),
+                review: formData.get('review')
+            })
+        });
+        
+        if (!response.ok) throw new Error('Server error');
+        
+        const result = await response.json();
+        if (result.success) {
+            alert('Qiymətləndirmə uğurla göndərildi');
+            if (ratingModal) {
+                ratingModal.hide();
+            }
+            loadApplications();  // Refresh the applications list
+            loadGivenRatings();  // Refresh given ratings
+        } else {
+            throw new Error(result.message || 'Qiymətləndirmə zamanı xəta baş verdi');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert(error.message || 'Qiymətləndirmə zamanı xəta baş verdi');
     }
 }
 </script>
+
+<!-- Rating Modal -->
+<div class="modal fade" id="ratingModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">İcarəyə verəni qiymətləndir</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="landlordRatingForm">
+                    <input type="hidden" id="landlordId" name="landlord_id">
+                    <input type="hidden" id="propertyId" name="property_id">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Mülk sahibi</label>
+                        <input type="text" class="form-control" id="landlordName" readonly>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Əmlak</label>
+                        <input type="text" class="form-control" id="propertyTitle" readonly>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Əmlakın real vəziyyəti</label>
+                        <select class="form-control" name="reliability" required>
+                            {% for i in range(5, 0, -1) %}
+                            <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Müqavilə şəffaflığı</label>
+                        <select class="form-control" name="responsibility" required>
+                            {% for i in range(5, 0, -1) %}
+                            <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Ünsiyyət və dəstək</label>
+                        <select class="form-control" name="communication" required>
+                            {% for i in range(5, 0, -1) %}
+                            <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Təmir və texniki xidmət</label>
+                        <select class="form-control" name="compliance" required>
+                            {% for i in range(5, 0, -1) %}
+                            <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Gizlilik və hörmət</label>
+                        <select class="form-control" name="respect" required>
+                            {% for i in range(5, 0, -1) %}
+                            <option value="{{ i }}">{{ i }} - {% if i == 5 %}Əla{% elif i == 4 %}Yaxşı{% elif i == 3 %}Orta{% elif i == 2 %}Zəif{% else %}Pis{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Rəy</label>
+                        <textarea class="form-control" name="review" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bağla</button>
+                <button type="button" class="btn btn-primary" onclick="submitRating()">Qiymətləndir</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %} 

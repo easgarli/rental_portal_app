@@ -17,7 +17,7 @@ gunicorn==21.2.0
 
 # Document handling
 python-docx==0.8.11
-docxtpl==0.16.7
+docxtpl==0.16.4
 
 # Additional utilities
 Jinja2==3.0.1
@@ -33,4 +33,7 @@ WTForms==2.3.3
 email-validator==1.1.3
 
 # New packages
-reportlab==4.1.0
+reportlab==3.6.8
+
+# Added for font handling
+pillow==9.5.0

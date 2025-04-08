@@ -1,7 +1,8 @@
-from flask import Blueprint, jsonify, request, render_template, send_from_directory, abort
+from flask import Blueprint, jsonify, request, render_template, send_from_directory, abort, flash, redirect, url_for
 from flask_login import login_required, current_user
 from models import db, RentalApplication, Property, User, TenantScore, UserContractInfo
 from utils.contract import generate_contract
+from datetime import datetime
 
 applications_bp = Blueprint('applications', __name__)
 
@@ -133,103 +134,60 @@ def approve_application(application_id):
 def manage_contract(application_id):
     application = RentalApplication.query.get_or_404(application_id)
     
-    print(f"User role: {current_user.role}")  # Debug print
+    # Check if user has filled out their information
+    if current_user.role == 'landlord' and not current_user.contract_info:
+        flash('Zəhmət olmasa müqavilə üçün məlumatlarınızı doldurun', 'warning')
+        return redirect(url_for('applications.landlord_info_form', application_id=application_id))
     
-    # Check for missing tenant data
-    tenant_info = UserContractInfo.query.filter_by(user_id=application.tenant_id).first()
-    
-    tenant_data_fields = [
-        tenant_info.first_name,
-        tenant_info.last_name,
-        tenant_info.father_name,
-        tenant_info.id_number,
-        tenant_info.fin,
-        tenant_info.birth_place,
-        tenant_info.birth_date,
-        tenant_info.address
-    ] if tenant_info else []
-    
-    missing_tenant_data = not tenant_info or any(not field for field in tenant_data_fields)
-    
-    # Check for missing landlord data
-    landlord_info = UserContractInfo.query.filter_by(user_id=application.property.landlord_id).first()
-    
-    landlord_data_fields = [
-        landlord_info.first_name,
-        landlord_info.last_name,
-        landlord_info.father_name,
-        landlord_info.id_number,
-        landlord_info.fin,
-        landlord_info.birth_place,
-        landlord_info.birth_date,
-        landlord_info.address
-    ] if landlord_info else []
-    
-    missing_landlord_data = not landlord_info or any(not field for field in landlord_data_fields)
-
-    # Check for missing property data
-    property_info = application.property
-    missing_property_data = not property_info or any(not field for field in [
-        property_info.registry_number,
-        property_info.area,
-        property_info.contract_term
-    ])
+    if current_user.role == 'tenant' and not current_user.contract_info:
+        flash('Zəhmət olmasa müqavilə üçün məlumatlarınızı doldurun', 'warning')
+        return redirect(url_for('applications.tenant_info_form', application_id=application_id))
 
     if request.method == 'GET':
         contract_info = None
         property_info = None
         
         if current_user.role == 'landlord':
-            contract_info = landlord_info
+            contract_info = application.property.landlord.contract_info[0]
             property_info = application.property
         elif current_user.role == 'tenant':
-            contract_info = tenant_info
+            contract_info = application.tenant.contract_info[0]
         
         return render_template('applications/contract_form.html',
                            application=application,
                            contract_info=contract_info,
                            property_info=property_info if current_user.role == 'landlord' else None,
-                           missing_tenant_data=missing_tenant_data,
-                           missing_landlord_data=missing_landlord_data,
-                           missing_property_data=missing_property_data,
-                           tenant_info=tenant_info,
-                           landlord_info=landlord_info)
+                           tenant_info=contract_info,
+                           landlord_info=application.property.landlord.contract_info[0] if application.property.landlord.contract_info else None)
 
     # Handle POST request for contract signing
     if request.method == 'POST':
-        data = request.get_json()
-        signature = data.get('signature')
-        
-        if not signature:
-            return jsonify({'error': 'Signature is required'}), 400
-            
-        if current_user.role == 'tenant':
-            application.tenant_signature = signature
-        else:
-            application.landlord_signature = signature
-            
-        if application.tenant_signature and application.landlord_signature:
-            application.contract_status = 'completed'
-            application.status = 'active'  # This will show as "Aktiv müqavilə"
-            
-            # Generate the contract document
-            contract_filename = generate_contract(application)
-            application.contract_data = {'filename': contract_filename}
-            
-        elif application.tenant_signature or application.landlord_signature:
-            application.contract_status = 'pending_signatures'
-            
         try:
+            data = request.get_json()
+            
+            if current_user.role == 'landlord':
+                application.landlord_signature = data.get('signature')
+            else:
+                application.tenant_signature = data.get('signature')
+            
+            if application.landlord_signature and application.tenant_signature:
+                application.contract_status = 'completed'
+                
+                try:
+                    contract_filename = generate_contract(application)
+                    application.contract_data = {'filename': contract_filename}
+                except ValueError as e:
+                    return jsonify({'success': False, 'message': str(e)}), 400
+                except Exception as e:
+                    print(f"Error generating contract: {e}")
+                    return jsonify({'success': False, 'message': 'Müqavilə yaratmaq mümkün olmadı'}), 500
+            
             db.session.commit()
-            return jsonify({
-                'success': True, 
-                'message': 'Müqavilə imzalandı',
-                'contract_status': application.contract_status,
-                'application_status': application.status
-            })
+            return jsonify({'success': True})
+            
         except Exception as e:
-            db.session.rollback()
-            return jsonify({'success': False, 'message': str(e)}), 500
+            print(f"Error handling signature: {e}")
+            return jsonify({'success': False, 'message': 'Müqaviləni imzalamaq mümkün olmadı'}), 500
 
 @applications_bp.route('/applications/<application_id>/contract/download')
 @login_required
@@ -293,35 +251,46 @@ def save_contract_details(application_id):
 @applications_bp.route('/applications/<application_id>/tenant-info', methods=['GET', 'POST'])
 @login_required
 def manage_tenant_info(application_id):
-    application = RentalApplication.query.get_or_404(application_id)
-    
-    if current_user.role != 'tenant' or current_user.id != application.tenant_id:
-        return jsonify({'error': 'Unauthorized'}), 403
-    
+    # Handle the case when creating new tenant info without an application
+    if application_id == 'new':
+        application = None
+    else:
+        application = RentalApplication.query.get_or_404(application_id)
+        if application.tenant_id != current_user.id:
+            abort(403)
+
     if request.method == 'POST':
         data = request.get_json()
         
-        # Get or create user contract info
+        # Get or create contract info
         contract_info = UserContractInfo.query.filter_by(user_id=current_user.id).first()
         if not contract_info:
             contract_info = UserContractInfo(user_id=current_user.id)
+            db.session.add(contract_info)
         
         # Update contract info
-        for field in ['first_name', 'last_name', 'father_name', 'id_number', 
-                     'fin', 'birth_place', 'birth_date', 'address']:
-            setattr(contract_info, field, data.get(field))
+        contract_info.first_name = data.get('first_name')
+        contract_info.last_name = data.get('last_name')
+        contract_info.father_name = data.get('father_name')
+        contract_info.id_number = data.get('id_number')
+        contract_info.fin = data.get('fin')
+        contract_info.birth_place = data.get('birth_place')
+        contract_info.birth_date = datetime.strptime(data.get('birth_date'), '%Y-%m-%d').date()
+        contract_info.address = data.get('address')
         
-        db.session.add(contract_info)
-        db.session.commit()
-        
-        return jsonify({'success': True, 'message': 'Contract information saved'})
-    
-    # GET request - return existing info if available
-    contract_info = UserContractInfo.query.filter_by(user_id=current_user.id).first()
-    return render_template('applications/tenant_info_form.html', 
-                         contract_info=contract_info,
-                         application=application,
-                         title="Şəxsi məlumatlar")
+        try:
+            db.session.commit()
+            if application:
+                return jsonify({'success': True, 'redirect_url': url_for('applications.manage_contract', application_id=application.id)})
+            else:
+                return jsonify({'success': True, 'redirect_url': url_for('dashboard')})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'success': False, 'message': str(e)})
+
+    return render_template('applications/tenant_info_form.html',
+                         contract_info=current_user.contract_info[0] if current_user.contract_info else None,
+                         application=application if application_id != 'new' else None)
 
 @applications_bp.route('/applications/<application_id>/landlord-info', methods=['GET', 'POST'])
 @login_required
