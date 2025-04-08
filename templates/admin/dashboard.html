@@ -26,6 +26,9 @@
                     <a class="nav-link" data-bs-toggle="tab" href="#credit-scores">Kredit Skorları</a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#contracts" role="tab">Müqavilələr</a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" data-bs-toggle="tab" href="#database">Verilənlər Bazası</a>
                 </li>
             </ul>
@@ -137,6 +140,26 @@
                         </table>
                     </div>
                 </div>
+                <div class="tab-pane fade" id="contracts">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Müqavilə ID</th>
+                                    <th>Əmlak</th>
+                                    <th>İcarədar</th>
+                                    <th>Mülk sahibi</th>
+                                    <th>Yaradılma tarixi</th>
+                                    <th>Status</th>
+                                    <th>Əməliyyatlar</th>
+                                </tr>
+                            </thead>
+                            <tbody id="contracts-list">
+                                <!-- Contracts will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
                 <div class="tab-pane fade" id="database">
                     <div class="row">
                         <!-- Database List -->
@@ -198,6 +221,8 @@
         </div>
     </div>
 </div>
+
+
 
 <script>
 function deleteUser(userId) {
@@ -471,6 +496,8 @@ document.querySelectorAll('a[data-bs-toggle="tab"]').forEach(tab => {
             loadRatings();
         } else if (target === '#credit-scores') {
             loadCreditScores();
+        } else if (target === '#contracts') {
+            loadContracts();
         } else if (target === '#database') {
             loadDatabases();
         }
@@ -555,6 +582,76 @@ function selectTable(tableName) {
             console.error('Error loading columns:', error);
             alert('Sütunları yükləmək mümkün olmadı');
         });
+}
+
+async function loadContracts() {
+    try {
+        const response = await fetch('/admin/contracts');
+        const contracts = await response.json();
+        const contractsList = document.getElementById('contracts-list');
+        contractsList.innerHTML = '';
+        
+        contracts.forEach(contract => {
+            const row = `
+                <tr>
+                    <td>${contract.id}</td>
+                    <td>${contract.property.title}</td>
+                    <td>${contract.tenant.name}</td>
+                    <td>${contract.landlord.name}</td>
+                    <td>${new Date(contract.created_at).toLocaleDateString()}</td>
+                    <td>${getContractStatusInAzeri(contract.status)}</td>
+                    <td>
+                        <div class="btn-group">
+                            <a href="/applications/${contract.application_id}/contract/download" 
+                               class="btn btn-sm btn-primary">Yüklə</a>
+                            <button onclick="deleteContract('${contract.id}')" 
+                                    class="btn btn-sm btn-danger">Sil</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            contractsList.innerHTML += row;
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('contracts-list').innerHTML = 
+            '<tr><td colspan="7" class="text-danger">Müqavilələri yükləmək mümkün olmadı</td></tr>';
+    }
+}
+
+function getContractStatusInAzeri(status) {
+    const statusMap = {
+        'draft': 'Qaralama',
+        'pending_signatures': 'İmza gözləyir',
+        'completed': 'İmzalanıb',
+        'none': 'Müqavilə yoxdur'
+    };
+    return statusMap[status] || status;
+}
+
+async function deleteContract(contractId) {
+    if (!confirm('Bu müqaviləni silmək istədiyinizə əminsiniz?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/contracts/${contractId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCsrfToken()
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Müqaviləni silmək mümkün olmadı');
+        }
+        
+        loadContracts();
+        alert('Müqavilə uğurla silindi');
+    } catch (error) {
+        console.error('Error:', error);
+        alert(error.message);
+    }
 }
 </script>
 {% endblock %}

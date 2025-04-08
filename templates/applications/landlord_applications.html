@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Property Applications</h2>
+    <div class="row">
+        {% for application in applications %}
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ application.property.title }}</h5>
+                    <p>Tenant: {{ application.tenant.name }}</p>
+                    <p>Status: {{ application.status }}</p>
+                    {% if application.status == 'pending' %}
+                        <button class="btn btn-success approve-btn" 
+                                data-application-id="{{ application.id }}">Approve</button>
+                    {% endif %}
+                    {% if application.status == 'approved' %}
+                        <a href="{{ url_for('applications.manage_contract', application_id=application.id) }}" 
+                           class="btn btn-primary">View/Sign Contract</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.approve-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+        const applicationId = e.target.dataset.applicationId;
+        const response = await fetch(`/applications/${applicationId}/approve`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            }
+        });
+        if (response.ok) {
+            window.location.reload();
+        }
+    });
+});
+</script>
+{% endblock %} 

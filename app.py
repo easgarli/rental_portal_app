@@ -19,6 +19,7 @@ from routes.users import users_bp
 from routes.properties import properties_bp
 from routes.admin import admin_bp
 from routes.questionnaire import questionnaire_bp
+from routes.applications import applications_bp
 from utils.csrf import init_csrf
 
 def create_app():
@@ -65,6 +66,7 @@ def create_app():
     app.register_blueprint(properties_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(questionnaire_bp)
+    app.register_blueprint(applications_bp)
 
     # Add this near the top of create_app()
     app.template_folder = 'templates'
@@ -76,12 +78,23 @@ def create_app():
     with app.app_context():
         # Check if any of our tables exist
         inspector = db.inspect(db.engine)
-        if not inspector.has_table('users'):  # Check for a core table
-            print("Creating database tables...")
+        tables_to_check = [
+            'users',                    # User model
+            'ratings',                  # Rating model
+            'properties',               # Property model
+            'tenant_questionnaires',    # TenantQuestionnaire model
+            'rental_applications',      # RentalApplication model
+            'user_contract_info',       # UserContractInfo model
+            'tenant_scores'             # TenantScore model
+        ]
+        missing_tables = [table for table in tables_to_check if not inspector.has_table(table)]
+        
+        if missing_tables:
+            print(f"Creating missing tables: {', '.join(missing_tables)}")
             db.create_all()
             print("Database tables created!")
         else:
-            print("Database tables already exist!")
+            print("All database tables exist!")
 
     # Main routes
     @app.route('/')
@@ -94,13 +107,12 @@ def create_app():
         try:
             if current_user.role == 'admin':
                 return redirect(url_for('admin.admin_dashboard'))
-            if current_user.role == 'tenant':
-                print(f"User role: {current_user.role}")  # Debug print
+            elif current_user.role == 'tenant':
                 return render_template('dashboard/tenant.html')
             else:
                 return render_template('dashboard/landlord.html')
         except Exception as e:
-            print(f"Dashboard error: {str(e)}")  # Debug print
+            print(f"Dashboard error: {str(e)}")
             return render_template('error.html', error=str(e)), 500
 
     @app.route('/about')
@@ -113,4 +125,4 @@ def create_app():
 if __name__ == '__main__':
     app = create_app()
     # run the app in debug mode with host 0.0.0.0 and port 8500
-    app.run(host='0.0.0.0', port=8500, debug=True) 
+    app.run(debug=True) 

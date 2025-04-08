@@ -2,6 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import datetime
 import uuid
+from sqlalchemy.dialects.postgresql import UUID, NUMERIC
 
 # Initialize SQLAlchemy
 db = SQLAlchemy()
@@ -110,12 +111,18 @@ class Property(db.Model):
     landlord_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text)
-    monthly_rent = db.Column(db.Float, nullable=False)
+    monthly_rent = db.Column(NUMERIC(10, 2), nullable=False)
     address = db.Column(db.String(200), nullable=False)
     available_from = db.Column(db.Date, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     status = db.Column(db.Enum('available', 'rented', 'unavailable', name='property_status'), default='available')
+    
+    # New fields for contract details
+    registry_number = db.Column(db.String(100), nullable=True)
+    area = db.Column(db.Float, nullable=True)
+    contract_term = db.Column(db.Integer, nullable=True)  # Default term in months
+    currency = db.Column(db.String(3), default='AZN')  # Added currency field
     
     # Relationships
     landlord = db.relationship('User', backref='properties')
@@ -145,7 +152,7 @@ class Property(db.Model):
             'id': self.id,
             'title': self.title,
             'description': self.description,
-            'monthly_rent': self.monthly_rent,
+            'monthly_rent': float(self.monthly_rent) if self.monthly_rent else 0,
             'address': self.address,
             'available_from': self.available_from.isoformat(),
             'created_at': self.created_at.isoformat(),
@@ -178,3 +185,41 @@ class TenantQuestionnaire(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     tenant = db.relationship('User', backref='questionnaire') 
+
+class RentalApplication(db.Model):
+    __tablename__ = 'rental_applications'
+    
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    property_id = db.Column(db.String(36), db.ForeignKey('properties.id'), nullable=False)
+    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Contract related fields
+    contract_data = db.Column(db.JSON, nullable=True)
+    tenant_signature = db.Column(db.String(200), nullable=True)
+    landlord_signature = db.Column(db.String(200), nullable=True)
+    contract_status = db.Column(db.String(20), nullable=True)  # draft, pending_signatures, completed
+    
+    # Relationships
+    tenant = db.relationship('User', foreign_keys=[tenant_id], backref='applications')
+    property = db.relationship('Property', backref='applications') 
+
+class UserContractInfo(db.Model):
+    __tablename__ = 'user_contract_info'
+    
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = db.Column(db.String(36), db.ForeignKey('users.id', ondelete='RESTRICT'), nullable=False)
+    first_name = db.Column(db.String(100), nullable=False)
+    last_name = db.Column(db.String(100), nullable=False)
+    father_name = db.Column(db.String(100), nullable=False)
+    id_number = db.Column(db.String(20), nullable=False)
+    fin = db.Column(db.String(20), nullable=False)
+    birth_place = db.Column(db.String(200), nullable=False)
+    birth_date = db.Column(db.Date, nullable=False)
+    address = db.Column(db.String(200), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('contract_info', lazy=True)) 

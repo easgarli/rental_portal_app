@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Əmlak məlumatları</h4>
+                </div>
+                <div class="card-body">
+                    <form id="property-info-form">
+                        <div class="mb-3">
+                            <label class="form-label">Reyestr Nömrəsi</label>
+                            <input type="text" class="form-control" name="registry_number" 
+                                   value="{{ property.registry_number if property else '' }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Sahə (m²)</label>
+                            <input type="number" class="form-control" name="area" 
+                                   value="{{ property.area if property else '' }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Müqavilə Müddəti (ay)</label>
+                            <input type="number" class="form-control" name="contract_term" 
+                                   value="{{ property.contract_term if property else '' }}" required>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Məlumatları yadda saxla</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('property-info-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+    
+    try {
+        const response = await fetch(window.location.href, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) throw new Error('Server error');
+        
+        const result = await response.json();
+        if (result.success) {
+            alert('Məlumatlar uğurla yadda saxlanıldı');
+            window.location.href = '/dashboard';
+        } else {
+            alert(result.message || 'Xəta baş verdi');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Məlumatları yadda saxlamaq mümkün olmadı');
+    }
+});
+</script>
+{% endblock %} 

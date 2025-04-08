@@ -152,34 +152,55 @@ def get_user_ratings(user_id):
         } if r.property else None
     } for r in ratings])
 
-@ratings_bp.route('/ratings/given/<user_id>', methods=['GET'])
+@ratings_bp.route('/ratings/received/<user_id>', methods=['GET'])
 @login_required
-def get_user_given_ratings(user_id):
-    """Get ratings given by a user, grouped by property"""
-    ratings = Rating.query.filter_by(rater_id=user_id).all()
+def get_received_ratings(user_id):
+    """Get all ratings received by a user"""
+    ratings = Rating.query.filter_by(ratee_id=user_id).all()
     
-    ratings_data = [{
+    return jsonify([{
         'id': r.id,
-        'property': {
-            'id': r.property.id,
-            'title': r.property.title,
-            'address': r.property.address
-        } if r.property else None,
-        'ratee': {
-            'name': r.ratee.name,
-            'email': r.ratee.email,
-            'role': r.ratee.role
-        },
-        # Calculate average rating from components
-        'rating': round((r.reliability + r.responsibility + r.communication + 
-                        r.respect + r.compliance) / 5, 1),
         'reliability': r.reliability,
         'responsibility': r.responsibility,
         'communication': r.communication,
         'respect': r.respect,
         'compliance': r.compliance,
         'review': r.review,
-        'created_at': r.created_at.isoformat()
-    } for r in ratings]
+        'created_at': r.created_at.isoformat(),
+        'rater': {
+            'id': r.rater.id,
+            'name': r.rater.name
+        },
+        'property': {
+            'id': r.property.id,
+            'title': r.property.title
+        } if r.property else None
+    } for r in ratings])
+
+@ratings_bp.route('/ratings/given/<user_id>')
+@login_required
+def get_given_ratings(user_id):
+    """Get ratings given by a specific user"""
+    if current_user.id != user_id:
+        return jsonify({'error': 'Unauthorized'}), 403
+        
+    ratings = Rating.query.filter_by(rater_id=user_id).all()
     
-    return jsonify(ratings_data) 
+    return jsonify([{
+        'id': rating.id,
+        'ratee': {
+            'id': rating.ratee.id,
+            'name': rating.ratee.name
+        },
+        'property': {
+            'id': rating.property.id,
+            'title': rating.property.title
+        },
+        'reliability': rating.reliability,
+        'responsibility': rating.responsibility,
+        'communication': rating.communication,
+        'respect': rating.respect,
+        'compliance': rating.compliance,
+        'review': rating.review,
+        'created_at': rating.created_at.isoformat()
+    } for rating in ratings]) 

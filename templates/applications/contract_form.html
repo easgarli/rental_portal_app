@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>YAŞAYIŞ SAHƏSİNİN KİRAYƏSİ HAQQINDA MÜQAVİLƏ</h2>
+    
+    <!-- Debug information -->
+    {% if current_user.is_authenticated %}
+    <div class="alert alert-info">
+        <p>Debug Info:</p>
+        <ul>
+            <li>User Role: {{ current_user.role }}</li>
+            <li>Missing Tenant Data: {{ missing_tenant_data }}</li>
+            <li>Missing Landlord Data: {{ missing_landlord_data }}</li>
+            <li>Missing Property Data: {{ missing_property_data }}</li>
+            <li>Application ID: {{ application.id }}</li>
+        </ul>
+    </div>
+    {% endif %}
+
+    <!-- Contract Status -->
+    <div class="alert {% if application.contract_status == 'completed' %}alert-success
+                      {% elif application.contract_status == 'pending_signatures' %}alert-warning
+                      {% else %}alert-info{% endif %} mb-4">
+        Status: {% if application.contract_status %}
+            {% if application.contract_status == 'completed' %}
+                Müqavilə tamamlanıb
+            {% elif application.contract_status == 'pending_signatures' %}
+                İmza gözləyir
+            {% elif application.contract_status == 'draft' %}
+                Qaralama
+            {% else %}
+                {{ application.contract_status }}
+            {% endif %}
+        {% else %}
+            Müqavilə hazırlanmayıb
+        {% endif %}
+    </div>
+
+    <!-- Missing Data Alert -->
+    {% if missing_tenant_data or missing_landlord_data or missing_property_data %}
+    <div class="alert alert-warning mb-4">
+        <h5><i class="fas fa-exclamation-triangle"></i> Çatışmayan məlumatlar var</h5>
+        {% if current_user.role == 'tenant' %}
+            {% if missing_tenant_data %}
+                <div class="mt-2">
+                    <a href="{{ url_for('applications.manage_tenant_info', application_id=application.id) }}" 
+                       class="btn btn-warning">
+                        <i class="fas fa-user-edit"></i> Şəxsi məlumatları tamamla
+                    </a>
+                    <small class="text-muted d-block mt-2">
+                        * Müqaviləni tamamlamaq üçün şəxsi məlumatlarınızı daxil edin
+                    </small>
+                </div>
+            {% endif %}
+        {% endif %}
+        {% if current_user.role == 'landlord' %}
+            {% if missing_landlord_data %}
+                <div class="mt-2">
+                    <a href="{{ url_for('applications.manage_landlord_info', application_id=application.id) }}" 
+                       class="btn btn-warning">
+                        <i class="fas fa-user-edit"></i> Mülk sahibinin məlumatlarını tamamla
+                    </a>
+                    <small class="text-muted d-block mt-2">
+                        * Müqaviləni tamamlamaq üçün şəxsi məlumatlarınızı daxil edin
+                    </small>
+                </div>
+            {% endif %}
+            {% if missing_property_data %}
+                <div class="mt-2">
+                    <a href="{{ url_for('applications.manage_property_info', application_id=application.id) }}" 
+                       class="btn btn-warning">
+                        <i class="fas fa-home"></i> Əmlak məlumatlarını tamamla
+                    </a>
+                    <small class="text-muted d-block mt-2">
+                        * Müqaviləni tamamlamaq üçün əmlak məlumatlarını daxil edin
+                    </small>
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Contract Details -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5>Əmlak Məlumatları</h5>
+            <p><strong>Ünvan:</strong> {{ application.property.address }}</p>
+            <p><strong>Aylıq İcarə Qiyəmi:</strong> {{ application.property.monthly_rent }} AZN</p>
+        </div>
+    </div>
+
+    {% if not application.contract_data and current_user.role == 'landlord' %}
+    <form id="contractDetailsForm" class="mb-4">
+        <h4>Müqavilə Məlumatları</h4>
+        
+        <!-- Property Information (Only shown to landlord) -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Əmlak Məlumatları</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Reyestr Nömrəsi</label>
+                            <input type="text" class="form-control" name="property_registry_number" 
+                                   value="{{ property_info.registry_number if property_info else '' }}" required>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Sahə (m2)</label>
+                            <input type="number" class="form-control" name="property_area" 
+                                   value="{{ property_info.area if property_info else '' }}" required>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Müqavilə Müddəti (ay)</label>
+                            <input type="number" class="form-control" name="contract_term" 
+                                   value="{{ property_info.contract_term if property_info else '' }}" required>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Müqavilə Məlumatlarını Saxla</button>
+    </form>
+    {% else %}
+    <!-- Display Contract Preview -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Müqavilə məlumatları</h5>
+        </div>
+        <div class="card-body">
+            <!-- Landlord Information -->
+            <h6>Kirayə verənin Məlumatları</h6>
+            {% if landlord_info %}
+            <p><strong>Adı:</strong> {{ landlord_info.first_name }} {{ landlord_info.last_name }}</p>
+            <p><strong>Ata Adı:</strong> {{ landlord_info.father_name }}</p>
+            <p><strong>Şəxsiyyət Vəsiqəsi Seriya və Nömrəsi:</strong> {{ landlord_info.id_number }}</p>
+            <p><strong>FIN:</strong> {{ landlord_info.fin }}</p>
+            <p><strong>Doğum Yeri:</strong> {{ landlord_info.birth_place }}</p>
+            <p><strong>Doğum Tarixi:</strong> {{ landlord_info.birth_date }}</p>
+            <p><strong>Ünvan:</strong> {{ landlord_info.address }}</p>
+            {% endif %}
+
+            <!-- Tenant Information -->
+            <h6>Kirayəçinin Məlumatları</h6>
+            {% if tenant_info %}
+            <p><strong>Adı:</strong> {{ tenant_info.first_name }} {{ tenant_info.last_name }}</p>
+            <p><strong>Ata Adı:</strong> {{ tenant_info.father_name }}</p>
+            <p><strong>Şəxsiyyət Vəsiqəsi Seriya və Nömrəsi:</strong> {{ tenant_info.id_number }}</p>
+            <p><strong>FIN:</strong> {{ tenant_info.fin }}</p>
+            <p><strong>Doğum Yeri:</strong> {{ tenant_info.birth_place }}</p>
+            <p><strong>Doğum Tarixi:</strong> {{ tenant_info.birth_date }}</p>
+            <p><strong>Ünvan:</strong> {{ tenant_info.address }}</p>
+            {% endif %}
+
+            <!-- Property Information -->
+            <h6>Əmlak Məlumatları</h6>
+            <p><strong>Reyestr Nömrəsi:</strong> {{ application.property.registry_number }}</p>
+            <p><strong>Sahə:</strong> {{ application.property.area }} m2</p>
+            <p><strong>Müqavilə Müddəti:</strong> {{ application.property.contract_term }} ay</p>
+        </div>
+    </div>
+
+    <!-- Signatures Section -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5>İmzalar</h5>
+            {% if application.tenant_signature %}
+            <div class="mb-3">
+                <label>Kirayəçinin imzası:</label>
+                <p class="form-control-static">{{ application.tenant_signature }}</p>
+            </div>
+            {% endif %}
+            
+            {% if application.landlord_signature %}
+            <div class="mb-3">
+                <label>Kirayə verənin imzası:</label>
+                <p class="form-control-static">{{ application.landlord_signature }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if (current_user.role == 'tenant' and not application.tenant_signature) or 
+          (current_user.role == 'landlord' and not application.landlord_signature) %}
+    <form id="signatureForm" class="needs-validation" novalidate>
+        <div class="mb-3">
+            <label class="form-label">Elektron imza (Ad və Soyadınızı daxil edin)</label>
+            <input type="text" class="form-control" name="signature" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Müqaviləni imzala</button>
+    </form>
+    {% endif %}
+    {% endif %}
+
+    {% if application.contract_status == 'completed' %}
+    <div class="mt-4">
+        <a href="{{ url_for('applications.download_contract', application_id=application.id) }}" 
+           class="btn btn-success">Müqaviləni yüklə (PDF)</a>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Handle contract details form submission
+document.getElementById('contractDetailsForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    
+    const contractData = {
+        property_registry_number: formData.get('property_registry_number'),
+        property_area: formData.get('property_area'),
+        contract_term: formData.get('contract_term')
+    };
+
+    try {
+        const response = await fetch('{{ url_for("applications.save_contract_details", application_id=application.id) }}', {
+            method: 'POST',
+            body: JSON.stringify(contractData),
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            }
+        });
+
+        if (!response.ok) throw new Error('Failed to save contract details');
+        
+        const result = await response.json();
+        if (result.success) {
+            alert('Contract details saved successfully!');
+            window.location.reload();
+        } else {
+            alert(result.message || 'Failed to save contract details');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('An error occurred while saving contract details');
+    }
+});
+
+// Handle signature form submission
+document.getElementById('signatureForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    
+    try {
+        const response = await fetch('{{ url_for("applications.manage_contract", application_id=application.id) }}', {
+            method: 'POST',
+            body: JSON.stringify({
+                signature: formData.get('signature')
+            }),
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            }
+        });
+
+        if (!response.ok) throw new Error('Failed to submit signature');
+
+        const result = await response.json();
+        if (result.success) {
+            alert('Contract signed successfully!');
+            window.location.reload();
+        } else {
+            alert(result.message || 'Failed to sign contract');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('An error occurred while signing the contract');
+    }
+});
+</script>
+{% endblock %} 

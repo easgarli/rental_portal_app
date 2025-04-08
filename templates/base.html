@@ -24,30 +24,43 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" href="/">Rental Portal</a>
+            <a class="navbar-brand" href="/">İcarə Portalı</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav">
                     {% if current_user.is_authenticated %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="/dashboard">Dashboard</a>
-                        </li>
-                        {% if current_user.role == 'admin' %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="/admin">Admin Panel</a>
-                        </li>
+                        {% if current_user.is_admin %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('admin.admin_dashboard') }}">Admin Panel</a>
+                            </li>
                         {% endif %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="/logout">Logout</a>
+                    {% endif %}
+                </ul>
+                
+                <ul class="navbar-nav">
+                    {% if current_user.is_authenticated %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                {{ current_user.name }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                {% if current_user.role == 'tenant' %}
+                                    <li><a class="dropdown-item" href="/dashboard">İcarədar Paneli</a></li>
+                                {% elif current_user.role == 'landlord' %}
+                                    <li><a class="dropdown-item" href="/dashboard">Mülk Sahibi Paneli</a></li>
+                                {% endif %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="/logout">Çıxış</a></li>
+                            </ul>
                         </li>
                     {% else %}
                         <li class="nav-item">
-                            <a class="nav-link" href="/login">Login</a>
+                            <a class="nav-link" href="/login">Daxil ol</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="/register">Register</a>
+                            <a class="nav-link" href="/register">Qeydiyyat</a>
                         </li>
                     {% endif %}
                 </ul>

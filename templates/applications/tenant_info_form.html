@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Şəxsi məlumatlar</h4>
+                </div>
+                <div class="card-body">
+                    <form id="tenant-info-form">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Ad</label>
+                                    <input type="text" class="form-control" name="first_name" 
+                                           value="{{ contract_info.first_name if contract_info else '' }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Soyad</label>
+                                    <input type="text" class="form-control" name="last_name" 
+                                           value="{{ contract_info.last_name if contract_info else '' }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Ata adı</label>
+                                    <input type="text" class="form-control" name="father_name" 
+                                           value="{{ contract_info.father_name if contract_info else '' }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Şəxsiyyət vəsiqəsinin seriya və nömrəsi</label>
+                                    <input type="text" class="form-control" name="id_number" 
+                                           value="{{ contract_info.id_number if contract_info else '' }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">FİN</label>
+                                    <input type="text" class="form-control" name="fin" 
+                                           value="{{ contract_info.fin if contract_info else '' }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Doğum yeri</label>
+                            <input type="text" class="form-control" name="birth_place" 
+                                   value="{{ contract_info.birth_place if contract_info else '' }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Doğum tarixi</label>
+                            <input type="date" class="form-control" name="birth_date" 
+                                   value="{{ contract_info.birth_date.strftime('%Y-%m-%d') if contract_info and contract_info.birth_date else '' }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Qeydiyyat ünvanı</label>
+                            <input type="text" class="form-control" name="address" 
+                                   value="{{ contract_info.address if contract_info else '' }}" required>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Məlumatları yadda saxla</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('tenant-info-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+    
+    try {
+        const response = await fetch(window.location.href, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) throw new Error('Server error');
+        
+        const result = await response.json();
+        if (result.success) {
+            alert('Məlumatlar uğurla yadda saxlanıldı');
+            window.location.href = '/dashboard';
+        } else {
+            alert(result.message || 'Xəta baş verdi');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Məlumatları yadda saxlamaq mümkün olmadı');
+    }
+});
+</script>
+{% endblock %} 

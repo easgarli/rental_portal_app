@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Mənim müraciətlərim</h2>
+    <div class="row">
+        {% for application in applications %}
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ application.property.title }}</h5>
+                    <p class="card-text">Status: {{ application.status }}</p>
+                    {% if application.status == 'approved' %}
+                        <a href="{{ url_for('applications.manage_contract', application_id=application.id) }}" 
+                           class="btn btn-primary">Müqaviləyə bax/İmzala/a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %} 

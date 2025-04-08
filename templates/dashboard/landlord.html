@@ -12,34 +12,72 @@
         height: 200px !important;
     }
 </style>
+<script>
+    // Add this at the top of your script section
+    const currentUserId = "{{ current_user.id }}";
+</script>
 {% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-12">
-        <h2>Xoş gəlmisiniz, {{ current_user.name }}</h2>
-    </div>
-</div>
+<div class="container mt-4">
+    <h1>Xoş gəlmisiniz, {{ current_user.name }}</h1>
 
 <div class="card mt-4">
     <div class="card-header">
         <ul class="nav nav-tabs card-header-tabs" role="tablist">
             <li class="nav-item">
-                <a class="nav-link active" data-bs-toggle="tab" href="#rate-tenant" role="tab">İcarədarı qiymətləndir</a>
+                    <a class="nav-link active" data-bs-toggle="tab" href="#properties" role="tab">Əmlaklarım</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#applications" role="tab">İcarə müraciətləri</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#received-ratings" role="tab">İcarədarlar tərəfindən qiymətləndirmə</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" data-bs-toggle="tab" href="#received-ratings" role="tab">Kirayəşinlər tərəfindən qiymətləndirmə</a>
+                    <a class="nav-link" data-bs-toggle="tab" href="#given-ratings" role="tab">İcarədarlara verdiyiniz qiymətlər</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" data-bs-toggle="tab" href="#property-management" role="tab">Əmlaklarınızın idarə edilməsi</a>
+                    <a class="nav-link" data-bs-toggle="tab" href="#rate-tenant" role="tab">İcarədarı qiymətləndir</a>
             </li>
         </ul>
     </div>
 
     <div class="card-body">
         <div class="tab-content">
-            <!-- Rate Tenant Tab -->
-            <div class="tab-pane fade show active" id="rate-tenant">
+                <!-- Əmlaklarım Tab -->
+                <div class="tab-pane fade show active" id="properties">
+                    <div class="mb-3">
+                        <button class="btn btn-primary" onclick="showAddPropertyForm()">Yeni əmlak əlavə et</button>
+                    </div>
+                    <div id="properties-list" class="row">
+                        <!-- Properties will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- İcarə müraciətləri Tab -->
+                <div class="tab-pane fade" id="applications">
+                    <div id="applications-list">
+                        <!-- Applications will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- İcarədarlar tərəfindən qiymətləndirmə Tab -->
+                <div class="tab-pane fade" id="received-ratings">
+                    <div id="received-ratings-list">
+                        <!-- Received ratings content -->
+                    </div>
+                </div>
+
+                <!-- İcarədarlara verdiyiniz qiymətlər Tab -->
+                <div class="tab-pane fade" id="given-ratings">
+                    <div id="given-ratings-list">
+                        <!-- Given ratings content -->
+                    </div>
+                </div>
+
+                <!-- İcarədarı qiymətləndir Tab -->
+                <div class="tab-pane fade" id="rate-tenant">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">İcarədarı Qiymətləndir</h5>
@@ -114,122 +152,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Received Ratings Tab -->
-            <div class="tab-pane fade" id="received-ratings">
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Ümumi Reytinqiniz</h5>
-                                <div id="landlord-rating-container" class="my-4">
-                                    <div class="text-center mb-4">
-                                        <h2 class="display-4" id="average-rating">-</h2>
-                                        <p class="text-muted">Ortalama reytinq (5 üzərindən)</p>
-                                    </div>
-                                    <div class="rating-dimensions">
-                                        <div class="mb-3">
-                                            <label>Əmlakın real vəziyyəti</label>
-                                            <div class="progress">
-                                                <div id="reliability-bar" class="progress-bar" role="progressbar" style="width: 0%"></div>
-                                            </div>
-                                            <small class="text-end d-block" id="reliability-score">-</small>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label>Müqavilə şəffaflığı</label>
-                                            <div class="progress">
-                                                <div id="responsibility-bar" class="progress-bar" role="progressbar" style="width: 0%"></div>
-                                            </div>
-                                            <small class="text-end d-block" id="responsibility-score">-</small>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label>Ünsiyyət və dəstək</label>
-                                            <div class="progress">
-                                                <div id="communication-bar" class="progress-bar" role="progressbar" style="width: 0%"></div>
-                                            </div>
-                                            <small class="text-end d-block" id="communication-score">-</small>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label>Təmir və texniki xidmət</label>
-                                            <div class="progress">
-                                                <div id="compliance-bar" class="progress-bar" role="progressbar" style="width: 0%"></div>
-                                            </div>
-                                            <small class="text-end d-block" id="compliance-score">-</small>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label>Gizlilik və hörmət</label>
-                                            <div class="progress">
-                                                <div id="respect-bar" class="progress-bar" role="progressbar" style="width: 0%"></div>
-                                            </div>
-                                            <small class="text-end d-block" id="respect-score">-</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-8">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Kirayəçilərin Rəyləri</h5>
-                                <div id="ratings-list">Yüklənir...</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Property Management Tab -->
-            <div class="tab-pane fade" id="property-management">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Əmlaklarınızın idarə edilməsi</h5>
-                        <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addPropertyModal">
-                            Yeni əmlak əlavə et
-                        </button>
-                        <div id="properties-list">Yüklənir...</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Add Property Modal -->
-<div class="modal fade" id="addPropertyModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Yeni əmlak əlavə et</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="add-property-form">
-                    <div class="mb-3">
-                        <label class="form-label">Başlıq</label>
-                        <input type="text" class="form-control" name="title" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Təsvir</label>
-                        <textarea class="form-control" name="description" rows="3"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Aylıq İcarə (AZN)</label>
-                        <input type="number" class="form-control" name="monthly_rent" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Ünvan</label>
-                        <input type="text" class="form-control" name="address" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">İcarəyə verilmə tarixi</label>
-                        <input type="date" class="form-control" name="available_from" required>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bağla</button>
-                <button type="button" class="btn btn-primary" onclick="submitProperty()">Əlavə et</button>
             </div>
         </div>
     </div>
@@ -362,250 +284,115 @@ function formatRatingStars(rating) {
 }
 
 // Fetch ratings for landlord
-function loadReceivedRatings() {
-    console.log('Loading received ratings...');
-    fetch(`/ratings/{{ current_user.id }}`)
-        .then(response => response.json())
-        .then(data => {
-            if (!data.length) {
-                document.getElementById('ratings-list').innerHTML = 'Hələ qiymətləndirmə yoxdur';
-                document.getElementById('average-rating').textContent = '-';
-                ['reliability', 'responsibility', 'communication', 'compliance', 'respect'].forEach(dim => {
-                    document.getElementById(`${dim}-score`).textContent = '-';
-                    document.getElementById(`${dim}-bar`).style.width = '0%';
-                });
+async function loadReceivedRatings() {
+    try {
+        const response = await fetch(`/ratings/received/${currentUserId}`);
+        const ratings = await response.json();
+        const ratingsList = document.getElementById('received-ratings-list');
+        ratingsList.innerHTML = '';
+        
+        if (!ratings.length) {
+            ratingsList.innerHTML = '<div class="alert alert-info">Hal-hazırda qiymətləndirmə yoxdur</div>';
                 return;
             }
             
-            // Calculate averages for each dimension
-            const dimensions = ['reliability', 'responsibility', 'communication', 'compliance', 'respect'];
-            const averages = dimensions.reduce((acc, dim) => {
-                acc[dim] = data.reduce((sum, r) => sum + r[dim], 0) / data.length;
-                return acc;
-            }, {});
-            
-            // Calculate overall average
-            const overallAvg = Object.values(averages).reduce((a, b) => a + b) / 5;
-            
-            // Update the display
-            document.getElementById('average-rating').textContent = overallAvg.toFixed(1);
-            
-            // Update each dimension's display
-            dimensions.forEach(dim => {
-                const score = averages[dim];
-                const percentage = (score / 5) * 100;
-                const bar = document.getElementById(`${dim}-bar`);
-                const scoreElement = document.getElementById(`${dim}-score`);
-                
-                bar.style.width = `${percentage}%`;
-                bar.className = `progress-bar bg-${getRatingColor(score)}`;
-                scoreElement.textContent = score.toFixed(1);
-            });
-            
-            // Display individual ratings
-            const ratingsHtml = data.map(rating => `
-                <div class="rating-item mb-4 p-3 border rounded">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <strong>İcarədar: ${rating.rater.name}</strong>
-                        <small>Tarix: ${new Date(rating.created_at).toLocaleDateString('az-AZ')}</small>
+        ratings.forEach(rating => {
+            const ratingCard = `
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">İcarədar: ${rating.rater.name}</h5>
+                        <p><strong>Əmlak:</strong> ${rating.property.title}</p>
+                        <div class="ratings-details">
+                            <p><strong>Ödəniş intizamı:</strong> ${rating.reliability} ★</p>
+                            <p><strong>Əmlaka münasibət:</strong> ${rating.responsibility} ★</p>
+                            <p><strong>Ünsiyyət:</strong> ${rating.communication} ★</p>
+                            <p><strong>Qonşulara münasibət:</strong> ${rating.respect} ★</p>
+                            <p><strong>Müqavilə şərtlərinə uyğunluq:</strong> ${rating.compliance} ★</p>
                     </div>
-                    <div class="rating-details">
-                        <div>Əmlakın real vəziyyəti: ${formatRatingStars(rating.reliability)}</div>
-                        <div>Müqavilə şəffaflığı: ${formatRatingStars(rating.responsibility)}</div>
-                        <div>Ünsiyyət və dəstək: ${formatRatingStars(rating.communication)}</div>
-                        <div>Təmir və texniki xidmət: ${formatRatingStars(rating.compliance)}</div>
-                        <div>Gizlilik və hörmət: ${formatRatingStars(rating.respect)}</div>
-                    </div>
-                    ${rating.review ? `<div class="mt-2"><strong>Rəy:</strong> ${rating.review}</div>` : ''}
-                    ${rating.property ? `
-                        <div class="mt-2 text-muted">
-                            <small>Əmlak: ${rating.property.title} - ${rating.property.address}</small>
-                        </div>
-                    ` : ''}
-                </div>
-            `).join('');
-            
-            document.getElementById('ratings-list').innerHTML = ratingsHtml;
-        })
-        .catch(error => {
-            console.error('Error fetching ratings:', error);
-            document.getElementById('ratings-list').innerHTML = 'Qiymətləndirmələri yükləmək mümkün olmadı';
-            document.getElementById('average-rating').textContent = '-';
-            ['reliability', 'responsibility', 'communication', 'compliance', 'respect'].forEach(dim => {
-                document.getElementById(`${dim}-score`).textContent = '-';
-                document.getElementById(`${dim}-bar`).style.width = '0%';
-            });
-        });
-}
-
-// Function to get rating color
-function getRatingColor(rating) {
-    if (rating >= 4.5) return 'success';
-    if (rating >= 3.5) return 'info';
-    if (rating >= 2.5) return 'warning';
-    return 'danger';
-}
-
-// Function to format currency
-function formatCurrency(amount) {
-    return new Intl.NumberFormat('az-AZ', { style: 'currency', currency: 'AZN' }).format(amount);
-}
-
-// Function to format date
-function formatDate(dateString) {
-    return new Date(dateString).toLocaleDateString('az-AZ');
-}
-
-// Load landlord's properties
-function loadProperties() {
-    fetch('/api/properties')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(properties => {
-            if (!properties.length) {
-                document.getElementById('properties-list').innerHTML = 
-                    '<div class="col-12 text-center">Hələ əmlak əlavə edilməyib</div>';
-                return;
-            }
-            
-            const propertiesContainer = document.createElement('div');
-            propertiesContainer.className = 'row';
-            
-            const propertiesHtml = properties.map(property => `
-                <div class="col-md-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <h5 class="card-title mb-0">${property.title}</h5>
-                                <div>
-                                    <button class="btn btn-sm btn-warning me-2" onclick="editProperty('${property.id}')">
-                                        Düzəliş Et
-                                    </button>
-                                    <button class="btn btn-sm btn-danger" onclick="deleteProperty('${property.id}')">
-                                        Sil
-                                    </button>
-                                </div>
-                            </div>
-                            <p class="card-text">${property.description || ''}</p>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <p><strong>Aylıq İcarə:</strong> ${formatCurrency(property.monthly_rent)}</p>
-                                    <p><strong>Ünvan:</strong> ${property.address}</p>
-                                </div>
-                                <div class="col-md-6">
-                                    <p><strong>Status:</strong> ${property.status === 'available' ? 'Boş' : 'İcarədə'}</p>
-                                    <p><strong>İcarəyə verilmə tarixi:</strong> ${formatDate(property.available_from)}</p>
-                                </div>
-                            </div>
-                        </div>
+                        <p><strong>Rəy:</strong> ${rating.review || 'Rəy yazılmayıb'}</p>
+                        <p class="text-muted">Tarix: ${new Date(rating.created_at).toLocaleDateString()}</p>
                     </div>
                 </div>
-            `).join('');
-            
-            propertiesContainer.innerHTML = propertiesHtml;
-            document.getElementById('properties-list').innerHTML = '';
-            document.getElementById('properties-list').appendChild(propertiesContainer);
-        })
-        .catch(error => {
-            console.error('Error loading properties:', error);
-            document.getElementById('properties-list').innerHTML = 
-                '<div class="col-12 text-center text-danger">Əmlakları yükləmək mümkün olmadı</div>';
+            `;
+            ratingsList.innerHTML += ratingCard;
         });
-}
-
-// Submit new property
-function submitProperty() {
-    const form = document.getElementById('add-property-form');
-    const formData = new FormData(form);
-    
-    const data = {
-        title: formData.get('title'),
-        description: formData.get('description'),
-        monthly_rent: parseFloat(formData.get('monthly_rent')),
-        address: formData.get('address'),
-        available_from: formData.get('available_from')
-    };
-
-    fetch('/api/properties', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(err => {
-                throw new Error(err.error || 'Əmlak əlavə edilərkən xəta baş verdi');
-            });
-        }
-        return response.json();
-    })
-    .then(() => {
-        const modal = bootstrap.Modal.getInstance(document.getElementById('addPropertyModal'));
-        modal.hide();
-        form.reset();
-        loadProperties();
-        alert('Əmlak uğurla əlavə edildi!');
-    })
-    .catch(error => {
+    } catch (error) {
         console.error('Error:', error);
-        alert(error.message);
-    });
-}
-
-// Add delete property function
-function deleteProperty(propertyId) {
-    if (!confirm('Bu əmlakı silmək istədiyinizə əminsiniz?')) {
-        return;
+        document.getElementById('received-ratings-list').innerHTML = 
+            '<div class="alert alert-danger">Qiymətləndirmələri yükləmək mümkün olmadı</div>';
     }
+}
 
-    fetch(`/api/properties/${propertyId}`, {
-        method: 'DELETE'
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Əmlakı silmək mümkün olmadı');
-        }
-        loadProperties();
-        alert('Əmlak uğurla silindi');
-    })
-    .catch(error => {
+// Load given ratings
+async function loadGivenRatings() {
+    try {
+        const response = await fetch(`/ratings/given/${currentUserId}`);
+        const ratings = await response.json();
+        const ratingsList = document.getElementById('given-ratings-list');
+        ratingsList.innerHTML = '';
+        
+        if (!ratings.length) {
+            ratingsList.innerHTML = '<div class="alert alert-info">Hal-hazırda qiymətləndirmə yoxdur</div>';
+                return;
+            }
+            
+        ratings.forEach(rating => {
+            const ratingCard = `
+                <div class="card mb-3">
+                        <div class="card-body">
+                        <h5 class="card-title">İcarədar: ${rating.ratee.name}</h5>
+                        <p><strong>Əmlak:</strong> ${rating.property.title}</p>
+                        <div class="ratings-details">
+                            <p><strong>Ödəniş intizamı:</strong> ${rating.reliability} ★</p>
+                            <p><strong>Əmlaka münasibət:</strong> ${rating.responsibility} ★</p>
+                            <p><strong>Ünsiyyət:</strong> ${rating.communication} ★</p>
+                            <p><strong>Qonşulara münasibət:</strong> ${rating.respect} ★</p>
+                            <p><strong>Müqavilə şərtlərinə uyğunluq:</strong> ${rating.compliance} ★</p>
+                        </div>
+                        <p><strong>Rəy:</strong> ${rating.review || 'Rəy yazılmayıb'}</p>
+                        <p class="text-muted">Tarix: ${new Date(rating.created_at).toLocaleDateString()}</p>
+                    </div>
+                </div>
+            `;
+            ratingsList.innerHTML += ratingCard;
+        });
+    } catch (error) {
         console.error('Error:', error);
-        alert(error.message);
-    });
+        document.getElementById('given-ratings-list').innerHTML = 
+            '<div class="alert alert-danger">Qiymətləndirmələri yükləmək mümkün olmadı</div>';
+    }
 }
 
-// Add edit property function
-function editProperty(propertyId) {
-    // TODO: Implement property editing
-    alert('Düzəliş funksiyası hazırlanır...');
+// Helper function to convert status to Azerbaijani
+function getStatusInAzeri(status) {
+    const statusMap = {
+        'pending': 'Təsdiqinizi gözləyir',
+        'approved': 'Müqavilə mərhələsindədir',
+        'rejected': 'İmtina edilmişdir',
+        'active': 'Aktiv müqavilə'
+    };
+    return statusMap[status] || status;
 }
 
-// Update tab change event listener to refresh content
+// Update tab change event listener
 document.querySelectorAll('a[data-bs-toggle="tab"]').forEach(tab => {
     tab.addEventListener('show.bs.tab', event => {
         const target = event.target.getAttribute('href');
-        if (target === '#received-ratings') {
-            // Load ratings immediately when tab is shown
-            loadReceivedRatings();
-        } else if (target === '#property-management') {
+        if (target === '#properties') {
             loadProperties();
+        } else if (target === '#applications') {
+            loadApplications();
+        } else if (target === '#received-ratings') {
+            loadReceivedRatings();
+        } else if (target === '#given-ratings') {
+            loadGivenRatings();
         }
     });
 });
 
-// Load initial data when page loads
-window.addEventListener('load', function() {
-    // Force load ratings if we're on the ratings tab
-    if (document.querySelector('a[href="#received-ratings"]').classList.contains('active')) {
-        loadReceivedRatings();
-    }
+// Initial load of properties
+document.addEventListener('DOMContentLoaded', () => {
+    loadProperties();
 });
 
 // Initialize landlord rating gauge
@@ -708,6 +495,241 @@ function getLandlordRatingText(rating) {
     if (rating >= 3.5) return 'Yüksək reytinqli ev sahibi';
     if (rating >= 3.0) return 'Orta reytinqli ev sahibi';
     return 'Aşağı reytinqli ev sahibi';
+}
+
+// Load properties
+async function loadProperties() {
+    try {
+        const response = await fetch('/api/properties/my');
+        const properties = await response.json();
+        const propertiesList = document.getElementById('properties-list');
+        propertiesList.innerHTML = '';
+        
+        if (!properties.length) {
+            propertiesList.innerHTML = '<div class="alert alert-info">Hal-hazırda əmlak yoxdur</div>';
+            return;
+        }
+        
+        properties.forEach(property => {
+            const propertyCard = `
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">${property.title}</h5>
+                            <p class="card-text">${property.description || 'Təsvir yoxdur'}</p>
+                            <div class="mb-3">
+                                <p class="mb-1"><strong>Qiymət:</strong> ${property.monthly_rent} AZN</p>
+                                <p class="mb-1"><strong>Ünvan:</strong> ${property.address}</p>
+                                <p class="mb-1"><strong>Status:</strong> ${property.status}</p>
+                            </div>
+                            <button onclick="editProperty('${property.id}')" class="btn btn-primary me-2">Düzəliş et</button>
+                            <button onclick="deleteProperty('${property.id}')" class="btn btn-danger">Sil</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            propertiesList.innerHTML += propertyCard;
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('properties-list').innerHTML = 
+            '<div class="alert alert-danger">Əmlakları yükləmək mümkün olmadı</div>';
+    }
+}
+
+// Load applications
+async function loadApplications() {
+    try {
+        const response = await fetch('/applications/landlord');
+        const applications = await response.json();
+        const applicationsList = document.getElementById('applications-list');
+        applicationsList.innerHTML = '';
+        
+        if (!applications.length) {
+            applicationsList.innerHTML = '<div class="alert alert-info">Hal-hazırda aktiv müraciət yoxdur</div>';
+            return;
+        }
+        
+        applications.forEach(app => {
+            const applicationCard = renderApplication(app);
+            applicationsList.innerHTML += applicationCard;
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('applications-list').innerHTML = 
+            '<div class="alert alert-danger">Müraciətləri yükləmək mümkün olmadı</div>';
+    }
+}
+
+function renderApplication(app) {
+    return `
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">${app.property.title}</h5>
+                <p class="card-text">İcarədar: ${app.tenant.name}</p>
+                <p class="card-text">Müraciətin statusu: ${getStatusInAzeri(app.status)}</p>
+                <p class="card-text">Müqavilə statusu: ${getContractStatusInAzeri(app.contract_status)}</p>
+                <div class="application-actions">
+                    ${app.status === 'pending' ? `
+                        <button onclick="updateApplicationStatus('${app.id}')" 
+                                class="btn btn-success me-2">
+                            Təsdiq et
+                        </button>
+                        <button onclick="rejectApplication('${app.id}')" 
+                                class="btn btn-danger me-2">
+                            Rədd et
+                        </button>
+                    ` : ''}
+                    ${app.status === 'approved' && (!app.contract_status || app.contract_status === 'draft') ? `
+                        <button onclick="createContract('${app.id}')" 
+                                class="btn btn-primary">
+                            Müqavilə yarat
+                        </button>
+                    ` : ''}
+                    ${app.contract_status === 'completed' ? `
+                        <a href="/applications/${app.id}/contract" 
+                           class="btn btn-info">
+                            Müqaviləyə bax
+                        </a>
+                    ` : ''}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function getContractStatusInAzeri(status) {
+    const statusMap = {
+        'draft': 'Müqavilə hazırlanır',
+        'pending_signatures': 'İmza gözləyir',
+        'completed': 'Tamamlanmış',
+        'none': 'Müqavilə hazırlanmayıb'
+    };
+    return statusMap[status] || 'Müqavilə hazırlanmayıb';
+}
+
+// Function to create contract
+async function createContract(applicationId) {
+    try {
+        const response = await fetch(`/applications/${applicationId}/contract`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Müqavilə yaratmaq mümkün olmadı');
+        }
+
+        // Redirect to contract page
+        window.location.href = `/applications/${applicationId}/contract`;
+    } catch (error) {
+        console.error('Error:', error);
+        alert(error.message);
+    }
+}
+
+// Add property management functions
+function showAddPropertyForm() {
+    // You can implement this to show a modal or navigate to a form
+    alert('Yeni əmlak əlavə etmək funksiyası hazırlanır...');
+}
+
+function editProperty(propertyId) {
+    // Implement property editing
+    alert('Düzəliş funksiyası hazırlanır...');
+}
+
+function deleteProperty(propertyId) {
+    if (!confirm('Bu əmlakı silmək istədiyinizə əminsiniz?')) {
+        return;
+    }
+
+    fetch(`/api/properties/${propertyId}`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Əmlakı silmək mümkün olmadı');
+        }
+        loadProperties();
+        alert('Əmlak uğurla silindi');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert(error.message);
+    });
+}
+
+// Application management functions
+function viewApplication(applicationId) {
+    // Implement application viewing
+    alert('Ətraflı baxış funksiyası hazırlanır...');
+}
+
+function updateApplicationStatus(applicationId) {
+    fetch(`/applications/${applicationId}/approve`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Status yeniləmək mümkün olmadı');
+        }
+        return response.json();
+    })
+    .then(result => {
+        if (result.success) {
+            alert(result.message);
+            loadApplications();
+        } else {
+            throw new Error(result.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert(error.message);
+    });
+}
+
+function rejectApplication(applicationId) {
+    if (!confirm('Bu müraciəti rədd etmək istədiyinizə əminsiniz?')) {
+        return;
+    }
+
+    fetch(`/applications/${applicationId}/reject`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Status yeniləmək mümkün olmadı');
+        }
+        return response.json();
+    })
+    .then(result => {
+        if (result.success) {
+            alert(result.message);
+            loadApplications();
+        } else {
+            throw new Error(result.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert(error.message);
+    });
 }
 </script>
 {% endblock %} 

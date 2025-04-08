@@ -2,16 +2,44 @@
 
 {% block title %}İcarədar Paneli{% endblock %}
 
+{% block head %}
+<!-- Add Gauge.js library -->
+<script src="https://bernii.github.io/gauge.js/dist/gauge.min.js"></script>
+<!-- Add Font Awesome -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
-<div class="row">
-    <div class="col-md-12">
-        <h2>Xoş gəlmisiniz, {{ current_user.name }}</h2>
+<script>
+    // Define currentUserId at the top of the template
+    const currentUserId = "{{ current_user.id }}";
+</script>
+
+<div class="container mt-4">
+    <h1>Xoş gəlmisiniz, {{ current_user.name }}</h1>
+    <div class="row">
+        <div class="col-md-6">
+            <div id="tenant-score">
+                <!-- Tenant score will be loaded here -->
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div id="credit-score">
+                <!-- Credit score will be loaded here -->
+            </div>
+        </div>
     </div>
 </div>
 
 <div class="card mt-4">
     <div class="card-header">
         <ul class="nav nav-tabs card-header-tabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#properties" role="tab">Mövcud Əmlaklar</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#applications" role="tab">Müraciətlərim</a>
+            </li>
             <li class="nav-item">
                 <a class="nav-link active" data-bs-toggle="tab" href="#scores" role="tab">Skorlarınız</a>
             </li>
@@ -29,6 +57,18 @@
 
     <div class="card-body">
         <div class="tab-content">
+            <!-- Properties Tab -->
+            <div class="tab-pane fade" id="properties">
+                <div id="properties-list" class="row">
+                    <!-- Properties will be loaded here -->
+                </div>
+            </div>
+            <!-- Applications Tab -->
+            <div class="tab-pane fade" id="applications">
+                <div id="applications-list">
+                    <!-- Applications will be loaded here -->
+                </div>
+            </div>
             <!-- Scores Tab -->
             <div class="tab-pane fade show active" id="scores">
                 <div class="row">
@@ -36,9 +76,9 @@
                         <div class="card">
                             <div class="card-body">
                                 <h5 class="card-title">TenantScore Balınız</h5>
-                                <div id="tenant-score-container" class="text-center">
-                                    <canvas id="tenant-score-gauge" width="200" height="200"></canvas>
-                                    <div id="tenant-score">Yüklənir...</div>
+                                <div id="tenant-score-container">
+                                    <canvas id="tenant-score-gauge"></canvas>
+                                    <div id="tenant-score-value" class="text-center mt-3"></div>
                                 </div>
                                 <div class="mt-3">
                                     <small class="text-muted">
@@ -231,39 +271,19 @@
     </div>
 </div>
 
-<!-- Add Gauge.js library -->
-<script src="https://bernii.github.io/gauge.js/dist/gauge.min.js"></script>
-
 <script>
 // Function to get CSRF token from meta tag
 function getCsrfToken() {
     return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 }
 
-// Fetch tenant score (existing score based on ratings)
-fetch(`/tenant-score/{{ current_user.id }}`)
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log("Received tenant score data:", data);  // Debug log
-        
-        // Initialize tenant score gauge
-        initTenantScoreGauge(data.total_score);
-        
-        // Update message container
-        document.getElementById('tenant-score').innerHTML = `
-            <h3 class="mt-2">${data.total_score.toFixed(1)}</h3>
-            <p class="text-${getTenantScoreColor(data.total_score)}">${getTenantScoreText(data.total_score)}</p>
-            <p class="mt-2">Son yenilənmə: ${new Date(data.updated_at).toLocaleDateString('az-AZ')}</p>
-        `;
-    })
-    .catch(error => {
-        console.error('Error fetching tenant score:', error);
-        document.getElementById('tenant-score').innerHTML = 'Xəta baş verdi';
+// Initialize gauges when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Load tenant score
+    loadTenantScore();
+
+    // Load credit score
+    loadCreditScore();
     });
 
 function getTenantScoreColor(score) {
@@ -445,46 +465,76 @@ document.getElementById('landlord-id').addEventListener('change', function() {
         });
 });
 
-function loadGivenRatings() {
-    fetch(`/ratings/given/{{ current_user.id }}`)
-        .then(response => response.json())
-        .then(ratings => {
+async function loadGivenRatings() {
+    try {
+        const response = await fetch(`/ratings/given/${currentUserId}`);
+        const ratings = await response.json();
+        const givenRatingsDiv = document.getElementById('given-ratings');
+        
             if (!ratings.length) {
-                document.getElementById('given-ratings').innerHTML = 'Hələ heç bir qiymətləndirmə verməmisiniz';
+            givenRatingsDiv.innerHTML = '<div class="alert alert-info">Hələ heç bir qiymətləndirmə verməmisiniz</div>';
                 return;
             }
             
             const ratingsHtml = ratings.map(rating => `
-                <div class="rating-item mb-3 p-3 border rounded">
-                    <div class="d-flex justify-content-between align-items-start">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
                         <div>
-                            <h6>${rating.ratee.role === 'landlord' ? 'Mülk sahibi' : 'İcarədar'}: ${rating.ratee.name}</h6>
+                            <h5 class="card-title mb-1">Mülk sahibi: ${rating.ratee.name}</h5>
                             ${rating.property ? 
-                                `<small class="text-muted">Əmlak: ${rating.property.title} - ${rating.property.address}</small>` 
+                                `<h6 class="card-subtitle text-muted">Əmlak: ${rating.property.title}</h6>` 
                                 : ''}
                         </div>
-                        <span class="badge bg-${getRatingColor(rating.rating)}">
-                            ${rating.rating.toFixed(1)} ★
+                        <span class="badge bg-${getRatingColor(calculateAverageRating(rating))} fs-5">
+                            ${calculateAverageRating(rating).toFixed(1)} ★
                         </span>
                     </div>
-                    <div class="mt-2">
-                        <strong>${rating.ratee.role === 'landlord' ? 'Əmlakın real vəziyyəti' : 'Ödəniş intizamı'}:</strong> ${formatRatingStars(rating.reliability)}<br>
-                        <strong>${rating.ratee.role === 'landlord' ? 'Müqavilə şəffaflığı' : 'Əmlaka münasibət'}:</strong> ${formatRatingStars(rating.responsibility)}<br>
-                        <strong>Ünsiyyət və əməkdaşlıq:</strong> ${formatRatingStars(rating.communication)}<br>
-                        <strong>${rating.ratee.role === 'landlord' ? 'Təmir və texniki xidmət' : 'Qonşular və binaya münasibət'}:</strong> ${formatRatingStars(rating.respect)}<br>
-                        <strong>${rating.ratee.role === 'landlord' ? 'Gizlilik və hörmət' : 'Müqavilə şərtlərinə uyğunluq'}:</strong> ${formatRatingStars(rating.compliance)}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Əmlakın real vəziyyəti:</strong> ${formatRatingStars(rating.reliability)}</p>
+                            <p><strong>Müqavilə şəffaflığı:</strong> ${formatRatingStars(rating.responsibility)}</p>
+                            <p><strong>Ünsiyyət və dəstək:</strong> ${formatRatingStars(rating.communication)}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Təmir və texniki xidmət:</strong> ${formatRatingStars(rating.compliance)}</p>
+                            <p><strong>Gizlilik və hörmət:</strong> ${formatRatingStars(rating.respect)}</p>
+                        </div>
                     </div>
-                    ${rating.review ? `<p class="mt-2 fst-italic">"${rating.review}"</p>` : ''}
-                    <small class="text-muted">Tarix: ${new Date(rating.created_at).toLocaleDateString('az-AZ')}</small>
+                    
+                    ${rating.review ? `
+                        <div class="mt-3">
+                            <strong>Rəy:</strong>
+                            <p class="fst-italic">"${rating.review}"</p>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="text-muted mt-2">
+                        <small>Tarix: ${new Date(rating.created_at).toLocaleDateString('az-AZ')}</small>
+                    </div>
+                </div>
                 </div>
             `).join('');
             
-            document.getElementById('given-ratings').innerHTML = ratingsHtml;
-        })
-        .catch(error => {
+        givenRatingsDiv.innerHTML = ratingsHtml;
+    } catch (error) {
             console.error('Error:', error);
-            document.getElementById('given-ratings').innerHTML = 'Qiymətləndirmələri yükləmək mümkün olmadı';
-        });
+        document.getElementById('given-ratings').innerHTML = 
+            '<div class="alert alert-danger">Qiymətləndirmələri yükləmək mümkün olmadı</div>';
+    }
+}
+
+function calculateAverageRating(rating) {
+    const scores = [
+        rating.reliability,
+        rating.responsibility,
+        rating.communication,
+        rating.compliance,
+        rating.respect
+    ].filter(score => score !== null);
+    
+    return scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
 }
 
 // Form submission handler
@@ -536,7 +586,7 @@ function getRatingColor(rating) {
 }
 
 // Credit Score functions and fetch (questionnaire-based score)
-function initCreditScoreGauge(score, updated_at) {
+function initCreditScoreGauge(score) {
     var opts = {
         angle: -0.2,
         lineWidth: 0.2,
@@ -554,7 +604,7 @@ function initCreditScoreGauge(score, updated_at) {
         generateGradient: true,
         highDpiSupport: true,
         staticLabels: {
-            font: "12px sans-serif",
+            font: "10px sans-serif",
             labels: [0, 200, 400, 600, 800, 1000],
             color: "#000000",
             fractionDigits: 0
@@ -573,14 +623,6 @@ function initCreditScoreGauge(score, updated_at) {
     gauge.setMinValue(0);
     gauge.animationSpeed = 32;
     gauge.set(score);
-    
-    // Update message container
-    const messageContainer = document.getElementById('credit-score-message');
-    messageContainer.innerHTML = `
-        <h3 class="mt-2">${score}</h3>
-        <p class="text-${getScoreColor(score)}">${getScoreText(score)}</p>
-        <p class="mt-2">Son yenilənmə: ${new Date(updated_at).toLocaleDateString('az-AZ')}</p>
-    `;
 }
 
 function getScoreColor(score) {
@@ -597,47 +639,168 @@ function getScoreText(score) {
     return 'Riskli kredit skoru';
 }
 
-// Load credit score separately
-fetch('/api/tenant-score/{{ current_user.id }}')
-    .then(response => {
-        if (!response.ok) {
-            if (response.status === 404) {
-                throw new Error('not_found');
-            }
-            throw new Error('server_error');
+// Load properties function
+async function loadProperties() {
+    try {
+        const response = await fetch('/api/properties');
+        const properties = await response.json();
+        const propertiesList = document.getElementById('properties-list');
+        
+        if (!properties.length) {
+            propertiesList.innerHTML = '<div class="col-12"><div class="alert alert-info">Hal-hazırda mövcud əmlak yoxdur</div></div>';
+            return;
         }
-        return response.json();
-    })
-    .then(data => {
-        if (data.credit_score) {
-            initCreditScoreGauge(data.credit_score, data.updated_at);
-        } else {
-            document.getElementById('credit-score-message').innerHTML = `
-                <a href="{{ url_for('questionnaire.questionnaire') }}" class="btn btn-primary">
-                    Kredit skorunuzu hesablamaq üçün müraciət edin və daha yaxşı şərtlərlə mənzil kirayəyə götürün
-                </a>
-            `;
-        }
-    })
-    .catch(error => {
+        
+        propertiesList.innerHTML = properties.map(property => `
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">${property.title}</h5>
+                        <p class="card-text">${property.description || 'Təsvir yoxdur'}</p>
+                        <ul class="list-unstyled">
+                            <li><strong>Qiymət:</strong> ${property.monthly_rent} AZN/ay</li>
+                            <li><strong>Ünvan:</strong> ${property.address}</li>
+                            <li><strong>Mövcudluq tarixi:</strong> ${new Date(property.available_from).toLocaleDateString('az-AZ')}</li>
+                        </ul>
+                    </div>
+                    <div class="card-footer">
+                        <button onclick="applyForProperty('${property.id}')" class="btn btn-primary">Müraciət et</button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
         console.error('Error:', error);
-        if (error.message === 'not_found') {
-            document.getElementById('credit-score-message').innerHTML = `
-                <a href="{{ url_for('questionnaire.questionnaire') }}" class="btn btn-primary">
-                    Kredit skorunuzu hesablamaq üçün müraciət edin və daha yaxşı şərtlərlə mənzil kirayəyə götürün
-                </a>
-            `;
+        document.getElementById('properties-list').innerHTML = 
+            '<div class="col-12"><div class="alert alert-danger">Əmlakları yükləmək mümkün olmadı</div></div>';
+    }
+}
+
+// Apply for property function
+async function applyForProperty(propertyId) {
+    try {
+        const response = await fetch(`/apply/${propertyId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.next_step === 'tenant_info') {
+            window.location.href = `/applications/${data.application_id}/tenant-info`;
         } else {
-            document.getElementById('credit-score-message').innerHTML = 
-                'Kredit balını yükləmək mümkün olmadı';
+            alert('Müraciətiniz uğurla qeydə alındı!');
+            loadProperties();
         }
-    });
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Müraciət zamanı xəta baş verdi');
+    }
+}
+
+// Load applications function
+async function loadApplications() {
+    try {
+        const response = await fetch('/api/applications/tenant');
+        if (!response.ok) throw new Error('Server error');
+        
+        const applications = await response.json();
+        const applicationsList = document.getElementById('applications-list');
+        
+        if (!applications.length) {
+            applicationsList.innerHTML = '<div class="alert alert-info">Hal-hazırda aktiv müraciətiniz yoxdur</div>';
+            return;
+        }
+        
+        applicationsList.innerHTML = applications.map(app => `
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h5 class="card-title">${app.property.title}</h5>
+                            <h6 class="card-subtitle mb-2 text-muted">Mülk sahibi: ${app.property.landlord.name}</h6>
+                        </div>
+                        <span class="badge bg-${getStatusColor(app.status)}">
+                            ${app.status === 'pending' ? 'Təsdiq gözləyir' : getStatusText(app.status)}
+                        </span>
+                    </div>
+                    <p class="card-text">
+                        <strong>Ünvan:</strong> ${app.property.address}<br>
+                        <strong>Aylıq kirayə:</strong> ${app.property.monthly_rent} AZN<br>
+                        <strong>Müraciət tarixi:</strong> ${new Date(app.created_at).toLocaleDateString('az-AZ')}
+                    </p>
+                    <hr>
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <strong class="me-2">Müqavilə statusu:</strong>
+                                <span class="badge bg-${getContractStatusColor(app.contract_status)}">
+                                    ${app.contract_status === 'none' ? 'Şəxsi məlumatlar tələb olunur' : getContractStatusText(app.contract_status)}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            ${app.contract_status === 'none' ? `
+                                <a href="/applications/${app.id}/tenant-info" class="btn btn-warning btn-sm">
+                                    <i class="fas fa-user-edit"></i> Şəxsi məlumatları daxil et
+                                </a>
+                            ` : app.contract_status === 'completed' ? `
+                                <a href="/applications/${app.id}/contract/download" class="btn btn-success btn-sm">
+                                    <i class="fas fa-download"></i> Müqaviləni yüklə
+                                </a>
+                            ` : app.status === 'approved' || app.status === 'pending_contract' ? `
+                                <a href="/applications/${app.id}/contract" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-file-signature"></i> Müqaviləyə bax
+                                </a>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('applications-list').innerHTML = 
+            '<div class="alert alert-danger">Müraciətləri yükləmək mümkün olmadı</div>';
+    }
+}
+
+function getStatusColor(status) {
+    const colors = {
+        'pending': 'warning',
+        'approved': 'success',
+        'rejected': 'danger',
+        'pending_contract': 'info',
+        'completed': 'success',
+        'cancelled': 'secondary'
+    };
+    return colors[status] || 'secondary';
+}
+
+function getStatusText(status) {
+    const texts = {
+        'pending': 'Gözləmədə',
+        'approved': 'Təsdiqlənib',
+        'rejected': 'Rədd edilib',
+        'pending_contract': 'Müqavilə gözləyir',
+        'completed': 'Tamamlanıb',
+        'cancelled': 'Ləğv edilib'
+    };
+    return texts[status] || status;
+}
 
 // Update tab change event listener to refresh content
 document.querySelectorAll('a[data-bs-toggle="tab"]').forEach(tab => {
     tab.addEventListener('show.bs.tab', event => {
         const target = event.target.getAttribute('href');
-        if (target === '#received-ratings') {
+        if (target === '#properties') {
+            loadProperties();
+        } else if (target === '#applications') {
+            loadApplications();
+        } else if (target === '#received-ratings') {
             loadRatings();
         } else if (target === '#given-ratings') {
             loadGivenRatings();
@@ -648,7 +811,119 @@ document.querySelectorAll('a[data-bs-toggle="tab"]').forEach(tab => {
 });
 
 // Initial load of all data
+loadProperties();
+loadApplications();
 loadRatings();
 loadGivenRatings();
+
+function getContractStatusColor(status) {
+    const colors = {
+        'draft': 'info',
+        'pending_signatures': 'warning',
+        'completed': 'success',
+        'none': 'secondary',
+        null: 'secondary',
+        undefined: 'secondary'
+    };
+    return colors[status] || 'secondary';
+}
+
+function getContractStatusText(status) {
+    const texts = {
+        'draft': 'Qaralama',
+        'pending_signatures': 'İmza gözləyir',
+        'completed': 'Tamamlanıb',
+        'none': 'Müqavilə yoxdur',
+        null: 'Müqavilə yoxdur',
+        undefined: 'Müqavilə yoxdur'
+    };
+    return texts[status] || status || 'Müqavilə yoxdur';
+}
+
+function getTenantScoreLabel(score) {
+    if (score >= 90) return 'Əla';
+    if (score >= 80) return 'Çox yaxşı';
+    if (score >= 70) return 'Yaxşı';
+    if (score >= 60) return 'Orta';
+    if (score >= 50) return 'Qənaətbəxş';
+    return 'Zəif';
+}
+
+function getCreditScoreLabel(score) {
+    if (score >= 90) return 'Əla kredit reytinqi';
+    if (score >= 80) return 'Yaxşı kredit reytinqi';
+    if (score >= 70) return 'Orta kredit reytinqi';
+    if (score >= 60) return 'Qənaətbəxş kredit reytinqi';
+    if (score >= 50) return 'Aşağı kredit reytinqi';
+    return 'Zəif kredit reytinqi';
+}
+
+// Update the tenant score display function
+async function loadTenantScore() {
+    try {
+        const response = await fetch(`/tenant-score/${currentUserId}`);
+        if (!response.ok) throw new Error('Server error');
+        
+        const data = await response.json();
+        
+        // Initialize gauge with the score
+        if (data.total_score !== undefined) {
+            initTenantScoreGauge(data.total_score);
+            const scoreLabel = getTenantScoreLabel(data.total_score);
+            document.getElementById('tenant-score-value').innerHTML = `
+                <h4>${data.total_score}</h4>
+                <p class="text-muted">${scoreLabel}</p>
+            `;
+        } else {
+            document.getElementById('tenant-score-container').innerHTML = `
+                <div class="alert alert-warning">
+                    <h4>Qiymətləndirmə yoxdur</h4>
+                    <p>Hələ ki qiymətləndirmə edilməyib</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading tenant score:', error);
+        document.getElementById('tenant-score-container').innerHTML = `
+            <div class="alert alert-danger">
+                <h4>Xəta baş verdi</h4>
+                <p>Kirayəçi balını yükləmək mümkün olmadı</p>
+            </div>
+        `;
+    }
+}
+
+// Update the credit score display function
+async function loadCreditScore() {
+    try {
+        const response = await fetch(`/api/tenant-score/${currentUserId}`);
+        if (!response.ok) throw new Error('Server error');
+        
+        const data = await response.json();
+        
+        if (data.credit_score !== undefined) {
+            initCreditScoreGauge(data.credit_score);
+            const scoreLabel = getCreditScoreLabel(data.credit_score);
+            document.getElementById('credit-score-message').innerHTML = `
+                <h4>${data.credit_score}</h4>
+                <p class="text-muted">${scoreLabel}</p>
+            `;
+        } else {
+            document.getElementById('credit-score-container').innerHTML = `
+                <div class="alert alert-warning">
+                    <h4>Kredit skoru yoxdur</h4>
+                    <p>Kredit məlumatları mövcud deyil</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading credit score:', error);
+        document.getElementById('credit-score-message').innerHTML = `
+            <a href="{{ url_for('questionnaire.questionnaire') }}" class="btn btn-primary">
+                Kredit skorunuzu hesablamaq üçün müraciət edin və daha yaxşı şərtlərlə mənzil kirayəyə götürün
+            </a>
+        `;
+    }
+}
 </script>
 {% endblock %} 

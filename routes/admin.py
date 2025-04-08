@@ -1,8 +1,9 @@
 from flask import Blueprint, render_template, jsonify, abort
 from flask_login import login_required, current_user
-from models import db, User, Property, Rating, TenantScore, TenantQuestionnaire
+from models import db, User, Property, Rating, TenantScore, TenantQuestionnaire, RentalApplication
 from functools import wraps
 from utils.database import DatabaseManager, DatabaseConfig
+import os
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -239,4 +240,59 @@ def get_columns(table):
             } for row in result]
             return jsonify(columns)
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/admin/contracts', methods=['GET'])
+@login_required
+@admin_required
+def get_contracts():
+    """Get all contracts"""
+    applications = RentalApplication.query.filter(
+        RentalApplication.contract_status.isnot(None)
+    ).all()
+    
+    return jsonify([{
+        'id': app.id,
+        'application_id': app.id,
+        'status': app.contract_status,
+        'created_at': app.created_at.isoformat(),
+        'property': {
+            'id': app.property.id,
+            'title': app.property.title
+        },
+        'tenant': {
+            'id': app.tenant.id,
+            'name': app.tenant.name
+        },
+        'landlord': {
+            'id': app.property.landlord.id,
+            'name': app.property.landlord.name
+        }
+    } for app in applications])
+
+@admin_bp.route('/admin/contracts/<contract_id>', methods=['DELETE'])
+@login_required
+@admin_required
+def delete_contract(contract_id):
+    """Delete a contract"""
+    application = RentalApplication.query.get_or_404(contract_id)
+    
+    # Delete the physical contract file if it exists
+    if application.contract_data and 'filename' in application.contract_data:
+        try:
+            os.remove(os.path.join('static/contracts', application.contract_data['filename']))
+        except OSError:
+            pass  # File doesn't exist or other error
+    
+    # Reset contract-related fields
+    application.contract_status = None
+    application.contract_data = None
+    application.tenant_signature = None
+    application.landlord_signature = None
+    
+    try:
+        db.session.commit()
+        return jsonify({'message': 'Contract deleted successfully'})
+    except Exception as e:
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500 

@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from flask_login import login_required, current_user
-from models import db, Property
+from models import db, Property, Rating
 from datetime import datetime
 
 properties_bp = Blueprint('properties', __name__)
@@ -14,59 +14,32 @@ def get_my_properties():
     
     try:
         properties = Property.query.filter_by(landlord_id=current_user.id).all()
-        return jsonify([{
-            'id': prop.id,
-            'title': prop.title,
-            'description': prop.description,
-            'monthly_rent': prop.monthly_rent,
-            'address': prop.address,
-            'available_from': prop.available_from.isoformat(),
-            'status': prop.status
-        } for prop in properties])
+        return jsonify([prop.to_dict() for prop in properties])
     except Exception as e:
-        print(f"Error fetching properties: {str(e)}")  # Debug log
+        print(f"Error fetching properties: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@properties_bp.route('/api/properties')
-@login_required
+@properties_bp.route('/api/properties', methods=['GET'])
 def get_properties():
-    """Get properties based on user role and parameters"""
-    landlord_id = request.args.get('landlord_id')
-    
-    # Base query
-    query = Property.query
-    
-    # If user is a landlord, only show their properties
-    if current_user.role == 'landlord':
-        query = query.filter_by(landlord_id=current_user.id)
-    # If landlord_id is provided and user is not a landlord (e.g., tenant)
-    elif landlord_id:
-        query = query.filter_by(landlord_id=landlord_id)
-        
-        # Only show available or rented properties
-        query = query.filter(Property.status.in_(['available', 'rented']))
-        
-        # Order by status (available first) and then by creation date
-        query = query.order_by(
-            Property.status.desc(),
-            Property.created_at.desc()
-        )
-    
     try:
+        # Get landlord_id from query params if provided
+        landlord_id = request.args.get('landlord_id')
+        
+        # Base query
+        query = Property.query.filter_by(status='available')
+        
+        # Add landlord filter if provided
+        if landlord_id:
+            query = query.filter_by(landlord_id=landlord_id)
+        
+        # Get properties and convert to dict
         properties = query.all()
-        return jsonify([{
-            'id': prop.id,
-            'title': prop.title,
-            'description': prop.description,
-            'monthly_rent': prop.monthly_rent,
-            'address': prop.address,
-            'available_from': prop.available_from.isoformat(),
-            'created_at': prop.created_at.isoformat(),
-            'status': prop.status
-        } for prop in properties])
+        properties_list = [prop.to_dict() for prop in properties]
+        
+        return jsonify(properties_list)
     except Exception as e:
-        print(f"Error fetching properties: {str(e)}")  # Debug log
-        return jsonify({'error': str(e)}), 500
+        print(f"Error fetching properties: {str(e)}")
+        return jsonify({'error': 'Failed to fetch properties'}), 500
 
 @properties_bp.route('/api/public/properties')
 def get_public_properties():

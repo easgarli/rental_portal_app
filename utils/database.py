@@ -430,11 +430,20 @@ def reset_db():
     with db.engine.connect() as conn:
         # Start a transaction
         with conn.begin():
+            # Drop redundant tables first
+            conn.execute(db.text("DROP TABLE IF EXISTS tenant_score CASCADE"))
+            conn.execute(db.text("DROP TABLE IF EXISTS landlord_rating CASCADE"))
+            conn.execute(db.text("DROP TABLE IF EXISTS tenant_rating CASCADE"))
+            conn.execute(db.text("DROP TABLE IF EXISTS \"user\" CASCADE"))
+            
             # Drop existing tables and types
             conn.execute(db.text("DROP TABLE IF EXISTS users CASCADE"))
             conn.execute(db.text("DROP TABLE IF EXISTS ratings CASCADE"))
             conn.execute(db.text("DROP TABLE IF EXISTS tenant_scores CASCADE"))
             conn.execute(db.text("DROP TABLE IF EXISTS properties CASCADE"))
+            conn.execute(db.text("DROP TABLE IF EXISTS tenant_questionnaires CASCADE"))
+            conn.execute(db.text("DROP TABLE IF EXISTS rental_applications CASCADE"))
+            conn.execute(db.text("DROP TABLE IF EXISTS user_contract_info CASCADE"))
             conn.execute(db.text("DROP TYPE IF EXISTS user_roles CASCADE"))
             conn.execute(db.text("DROP TYPE IF EXISTS property_status CASCADE"))
             
@@ -442,33 +451,5 @@ def reset_db():
             conn.execute(db.text("CREATE TYPE user_roles AS ENUM ('tenant', 'landlord', 'admin')"))
             conn.execute(db.text("CREATE TYPE property_status AS ENUM ('available', 'rented', 'unavailable')"))
     
-    # Create tables
+    # Create tables from models
     db.create_all()
-    
-    # Restore data if backup exists and has data
-    if backup_file and os.path.exists(backup_file):
-        restore_choice = input("Would you like to restore the backed up data? (yes/no): ")
-        if restore_choice.lower() == 'yes':
-            with open(backup_file, 'r') as f:
-                backup = json.load(f)
-            
-            # Check if backup has any data
-            has_data = any(
-                isinstance(rows, list) and len(rows) > 0 
-                for table, rows in backup.items() 
-                if table != 'metadata'
-            )
-            
-            if not has_data:
-                print("No data to restore in backup.")
-                return
-            
-            with db.engine.connect() as conn:
-                with conn.begin():
-                    try:
-                        restore_data(conn, backup)
-                        print("Data restored successfully!")
-                    except Exception as e:
-                        print(f"Error during restore: {str(e)}")
-                        print("Rolling back changes...")
-                        raise
