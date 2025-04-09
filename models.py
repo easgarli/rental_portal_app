@@ -1,6 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
-from datetime import datetime
+from datetime import datetime, UTC
 import uuid
 from sqlalchemy.dialects.postgresql import UUID, NUMERIC
 
@@ -15,7 +15,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
     role = db.Column(db.Enum('tenant', 'landlord', 'admin', name='user_roles'), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     
     # Define relationships
     ratings_given = db.relationship('Rating', foreign_keys='Rating.rater_id', backref='rater')
@@ -29,7 +29,7 @@ class Rating(db.Model):
     rater_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
     ratee_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
     property_id = db.Column(db.String(36), db.ForeignKey('properties.id'), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     review = db.Column(db.Text)
     
     # Rating components
@@ -56,7 +56,7 @@ class TenantScore(db.Model):
     total_score = db.Column(db.Float, default=0)
     
     payment_history = db.Column(db.JSON)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
     def calculate_total_score(self):
         """Calculate weighted total score"""
@@ -114,8 +114,8 @@ class Property(db.Model):
     monthly_rent = db.Column(NUMERIC(10, 2), nullable=False)
     address = db.Column(db.String(200), nullable=False)
     available_from = db.Column(db.Date, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
     status = db.Column(db.Enum('available', 'rented', 'unavailable', name='property_status'), default='available')
     
     # New fields for contract details
@@ -182,7 +182,7 @@ class TenantQuestionnaire(db.Model):
     monthly_expenses = db.Column(db.Float, nullable=False)
     planned_rent = db.Column(db.Float, nullable=False)
     credit_score = db.Column(db.Integer, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     
     tenant = db.relationship('User', backref='questionnaire') 
 
@@ -193,8 +193,8 @@ class RentalApplication(db.Model):
     tenant_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
     property_id = db.Column(db.String(36), db.ForeignKey('properties.id'), nullable=False)
     status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
     
     # Contract related fields
     contract_data = db.Column(db.JSON, nullable=True)
@@ -219,7 +219,37 @@ class UserContractInfo(db.Model):
     birth_place = db.Column(db.String(200), nullable=False)
     birth_date = db.Column(db.Date, nullable=False)
     address = db.Column(db.String(200), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
     user = db.relationship('User', backref=db.backref('contract_info', lazy=True)) 
+
+class Contract(db.Model):
+    __tablename__ = 'contracts'
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    property_id = db.Column(db.String(36), db.ForeignKey('properties.id'), nullable=False)
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=False)
+    monthly_rent = db.Column(db.Numeric(10, 2), nullable=False)
+    status = db.Column(db.String(20), default='draft')  # draft, pending_signatures, active, completed, terminated
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
+
+    # Relationships
+    tenant = db.relationship('User', foreign_keys=[tenant_id])
+    property = db.relationship('Property', foreign_keys=[property_id])
+    payments = db.relationship('Payment', backref='contract', lazy=True)
+
+
+class Payment(db.Model):
+    __tablename__ = 'payments'
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    contract_id = db.Column(db.String(36), db.ForeignKey('contracts.id'), nullable=False)
+    payment_date = db.Column(db.Date, nullable=False)
+    amount = db.Column(db.Numeric(10, 2), nullable=False)
+    note = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))

@@ -85,7 +85,9 @@ def create_app():
             'tenant_questionnaires',    # TenantQuestionnaire model
             'rental_applications',      # RentalApplication model
             'user_contract_info',       # UserContractInfo model
-            'tenant_scores'             # TenantScore model
+            'tenant_scores',             # TenantScore model
+            'contracts',                # Contract model
+            'payments'                  # Payment model
         ]
         missing_tables = [table for table in tables_to_check if not inspector.has_table(table)]
         

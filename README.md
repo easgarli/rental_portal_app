@@ -44,6 +44,13 @@ Rental Portal is a sophisticated platform designed to bring transparency and tru
   - Availability tracking
   - Rental history recording
 
+- **Contract Management System**
+  - Digital contract generation
+  - Contract signing workflow
+  - Payment schedule tracking
+  - Monthly rent payment recording
+  - Contract status monitoring (draft, pending_signatures, active, completed, terminated)
+
 ## Technical Stack
 
 ### Backend
@@ -69,6 +76,16 @@ Rental Portal is a sophisticated platform designed to bring transparency and tru
 - Secure password handling
 - Rate limiting
 - Session management
+
+### Database Schema
+- Users (tenants, landlords, admins)
+- Properties
+- Ratings
+- TenantScores
+- RentalApplications
+- Contracts
+- Payments
+- UserContractInfo
 
 ## Installation
 
@@ -152,6 +169,11 @@ flask-rental-portal/
 - `PUT /api/properties/<id>` - Update property
 - `DELETE /api/properties/<id>` - Delete property
 
+### Contracts
+- `GET /api/contracts` - List user's contracts
+- `GET /api/contracts/<contract_id>` - Get contract details
+- `POST /api/payments` - Record rent payment
+
 ## Development
 
 ### Running Tests
@@ -223,6 +245,24 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Flask documentation
 - SQLAlchemy documentation
 - Bootstrap documentation
+
+## Database Models
+
+### Contract Model
+- UUID-based identification
+- Tenant and Property relationships
+- Start and end dates
+- Monthly rent amount
+- Contract status tracking
+- Payment history relationship
+
+### Payment Model
+- UUID-based identification
+- Contract relationship
+- Payment date tracking
+- Amount recording
+- Payment notes
+- Timestamp tracking
 
 
 
