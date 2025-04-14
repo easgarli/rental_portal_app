@@ -1,0 +1,90 @@
+YAŞAYIŞ SAHƏSİNİN KİRAYƏSİ HAQQINDA
+
+M Ü Q A V İ L Ə  № {{ ContractNo }}
+
+Bakı şəhəri
+{{ ContractDate }}-ci il
+ 
+Biz aşağıda imza edənlər, bir tərəfdən bundan sonra Kirayəyə verən adlanacaq {{ LandlordLastName }} {{ LandlordFirstName }} {{ LandlordFatherName }} oğlu/qızı (Ş/V: {{ LandlordID }}, FİN: {LandlordFIN}), digər tərəfdən bundan sonra Kirayəçi adlanacaq {{ TenantLastName }} {{ TenantFirstName }} {{ TenantFatherName }} oğlu/qızı  (Ş/V: {{ TenantID }},  FİN: {TenantFIN}) bu müqaviləni aşağıdakı şərtlərlə bağladıq:
+
+
+1. MÜQAVİLƏNİN PREDMETİ
+
+1.1. Bu müqavilə ilə nəzərdə tutulmuş şərtlərlə Kirayə yəverən 1.2-ci bənddə göstərilmiş ”Azərbaycan Respublikasının Daşınmaz Əmlakın Dövlət Reyestri Xidmətinin hüquqların dövlət qeydiyyatı haqqında daşınmaz əmlakın dövlət reyestrindən verilmiş MH seriyalı {PropertyRegisrtyNumber} saylı çıxarışa əsasən mülkiyyətində olan mənzili yaşayış sahəsi qismində istifadə edilməsi üçün Kirayəçinin istifadəsinə verməyi, Kirayəçi isə bunun qarşılığında hər ay {{ RentAmount }} manat məbləğində kirayə haqqını ödəməyi öhdəsinə götürür.
+1.2. Kirayə predmeti {{ PropertyAddress }} ünvanında yerləşir və ümumi sahəsi {PropertyArea} kv.m. təşkil edir.
+
+2. ÖDƏNİŞLƏR
+
+Kirayə haqqının ödənilməsi kirayə münasibətərinin yaranmasından (Muqavilənin 3.1.4-cü bəndində qeyd edilən Aktın imzalanma tarixindən) başlayaraq hər növbəti ayın 01-dən 05-dək nağd qaydada həyata keçiriləcəkdir.
+
+
+3. TƏRƏFLƏRİN HÜQUQ VƏ VƏZİFƏLƏRİ
+
+3.1.   Kirayəyə verənin hüquq və vəzifələri:
+3.1.1. Aylıq kirayə haqqının vaxtında ödənilməsini Kirayəçidən tələb etmək.
+3.1.2. Hər ayda 1 (bir) dəfə kirayə predmetinə baxış keçirmək.
+3.1.3. Kirayə predmetini 3-cü şəxslərin iddiasından, tələb və pretenziyasından azad şəkildə müqavilə bağlandığı gün ərzində Kirayəçiyə təhvil vermək.
+3.1.4. Kirayə predmetini, onun daxilində olan və məişət təyinatlı avadanlıqları işlək vəziyyətdə, sanitar-gigiyenik qaydalarına cavab verən şəkildə aktla Kirayəçinin istifadəsinə verir (akt bu Müqaviləyə əlavə olunur). Aktda həmçinin təhvil-təslim zamanı su, işıq, qaz və digər kommunal xərclər üzrə cari borclar da əks olunmalıdır.
+3.1.5. Kirayəçinin kirayə predmetindən qanunvericiliyə və müqaviləyə uyğun  istifadəsinə hər cür şərait yaradır, razılaşdırılmış həcmdə və keyfiyyətdə təsərrüfat təyinatlı ləvazimatları təmin edir.
+3.1.6. Kirayəçinin kirayə predmetindən normal istifadəsi üçün yarana biləcək maneələri aradan qaldırır.
+3.1.7. Kirayəçinin təqsiri olmadan baş vermiş texniki-kommunal (su axıtmadan, qaz  sızmadan, elektrik gərginliyinin artması-azalmasından, yanğın və s.) qəza və zədələnmələri öz vəsaiti hesabına aradan qaldırır.
+3.1.8. Kirayə verən Müqavilə müddətinin bitməsinədək müqaviləyə xitam vermək istədikdə bu barədə 1(bir) ay qabaqcadan Kirayəçini xəbərdar etməlidir.
+
+3.2. Kirayəçinin hüquq və vəzifələri:
+3.2.1. Kirayə predmetindən və onun daxilində olan məişət təyinatlı avadanlıqlardan istifadə edilərkən texniki təhlükəsizlik və sair qaydalara əməl edilməsini təmin etmək.
+3.2.2. Kirayə haqqını vaxtında və tam şəkildə ödəyir.
+3.2.3. Su, zibil, kanalizasiya, elektrik və qazdan istifadəyə görə kommunal xidmətlərlə əlaqədar xərclərin ödənilməsini öz üzərinə götürür.
+3.2.4. Kirayə predmetindən istifadə edərkən kirayə predmetində yaşayan şəxslərin təqsiri üzündən zədələnmələr baş verdikdə onları öz hesabına aradan qaldırmalıdır.
+3.2.5. Müqavilə müddəti qurtardıqda kirayəçi müqavilə müddətini uzatmaq istəmədikdə kirayə predmetini 20(iyirmi) gün ərzində Kirayəyə verənə təhvil verməli və bununla əlaqədar heç bir tələb irəli sürməməlidir.
+3.2.6. Müqavilə müddətinin bitməsinədək Kirayəçinin kirayə predmetini tərk etmək istəyi olduqda o bu barədə Kirayə verənə 1(bir) ay qabaqcadan xəbərdarlıq etməlidir.
+3.3.   Tərəflər Azərbaycan Respublikası mülki qanunvericiliyindən, bu müqavilədən və   kirayənin mahiyyətindən irəli gələn hüquqlara sahibdir və vəzifələr daşıyırlar. 
+3.4.   Tərəflər kirayə predmetini və onun daxilində olan məişət avadanlıqlarının təhvil-təslimini və işlək vəziyyətdə olmasını bu müqavilənin ayrılmaz tərkib hissəsi olan Akt ilə rəsmiləşdirirlər. 
+
+
+4. TƏRƏFLƏRİN MƏSULİYYƏTİ
+
+4.1. Bu müqavilənin şərtlərinin pozulması və ya lazımınca icra olunmaması nəticəsində, tərəflər bir-birinə vurduqları zərərə görə mülki-hüquqi məsuliyyət daşıyırlar.
+4.2. KİRAYƏÇİnin səhlənkarlığı və ya təqsiri olaraq baş vermiş texniki-kommunal (su axıtmadan, qaz sızmadan, yanğından və s.) qəza və zədələnmələri öz vəsaiti hesabına aradan qaldırır. Təbii fəlakətlər və Kirayəçinin təqsiri olmayan digər hadisələrdən zədələnmələrə görə Kirayəçi heç bir məsuliyyət daşımayacaq.
+4.3. Tərəflər fors-major hallarında müqavilə şərtlərinin icra olunmaması və ya lazımi qaydada icra olunmamasına görə məsuliyyətdən azad olunurlar.
+4.4. Fors-major hallar tərəflərin müqavilə bağlayarkən öncədən nəzərdə tutmadıqları zəlzələ və s. təbii fəlakətlər, tətil, müharibə, terror hadisələri və digər bu kimi hallardır.
+
+
+5. MÜQAVİLƏNİN MÜDDƏTİ, QÜVVƏYƏ MİNMƏSİ 
+
+5.1.	Müqavilə imzalan andan qüvvəyə minir və {{ ContractTerm }} müddətinə qüvvədədir.
+5.2.  	Kirayəçi bu müqavilənin qüvvədə olma müddəti başa çatdıqdan sonra, onun müddətinin uzadılmasında üçüncü şəxslər qarşısında üstünlük hüququna malikdir.
+
+
+6. MÜBAHİSƏLƏRIN HƏLLİ
+
+6.1.	Tərəflər arasında bu müqavilənin icrasından irəli gələn mübahisələr qarşılıqlı razılaşma yolu ilə həll olunur.
+6.2.	Bu müqavilədən irəli gələn mübahisələrin həllində tərəflər arasında qarşılıqlı razılaşma mümkün olmadıqda, həmin mübahisələr Azərbaycan Respublikası qanunvericiliyi əsasında məhkəmə qaydasında həll edilir.
+
+
+7. YEKUN MÜDDƏALAR
+
+7.1.	Bu müqavilənin şərtləri konfidensialdır, aidiyyatı şəxslər və orqanlar istisna olmaqla, digər şəxslərin dairəsində hər hansı bir formada açıqlana və yayıla bilməz.
+7.2.	Tərəflər bu Müqavilə üzrə öz hüquq və vəzifələrini qarşı tərəfin yazılı razılığı olmadan üçüncü şəxslərə verə bilməzlər.
+7.3.    Müqaviləyə bütün əlavə və dəyişikliklər yalnız yazılı şəkildə tərtib edilmiş sənədin Tərəflərin hər ikisinin imzalaması yolu ilə edilə bilər.
+7.4.    Bu müqavilə imzalandığı andan onunla bağlı aparılmış bütün yazışmalar ləğv olunur.
+7.5.    Bu müqavilə imzalandığı andan qüvvəyə minir və Azərbaycan dilində eyni hüquqi qüvvəyə malik 2 nüsxədə tərtib edilərək tərəflərdə saxlanılır.
+
+
+8. TƏRƏFLƏR
+KİRAYƏYƏ VERƏN
+Ad: {{ LandlordFirstName }}
+Soyad: {{ LandlordLastName }}
+Ata adı: {{ LandlordFatherName }}
+Şəxsiyyət vəsiqəsinin seriya və nömrəsi: {{ LandlordID }}
+Doğulduğu yer: {{ LandlordBirthPlace }}
+Doğulduğu tarix (gg.aa.iiii): {{ LandlordBirthDate }}
+Ünvan: {{ LandlordAddress }}
+
+KİRAYƏÇİ
+Ad: {{ TenantFirstName }}
+Soyad: {{ TenantLastName }}
+Ata adı: {{ TenantFatherName }}
+Şəxsiyyət vəsiqəsinin seriya və nömrəsi: {{ TenantID }}
+Doğulduğu yer: {{ TenantBirthPlace }}
+Doğulduğu tarix (gg.aa.iiii): {{ TenantBirthDate }}
+Ünvan:  {{ TenantAddress }}

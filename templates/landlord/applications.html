@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Müraciətlər{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Müraciətlər</h2>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <div id="applications-list">
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Yüklənir...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function loadApplications() {
+    try {
+        const response = await fetch('/landlord/api/applications');
+        if (!response.ok) throw new Error('Server error');
+        
+        const applications = await response.json();
+        
+        const applicationsList = document.getElementById('applications-list');
+        applicationsList.innerHTML = applications.length ? 
+            applications.map(app => `
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">${app.property.title}</h5>
+                        <p class="card-text">${app.property.address}</p>
+                        <p class="card-text"><strong>İcarəçi:</strong> ${app.tenant.name}</p>
+                        <p class="card-text"><strong>Status:</strong> ${app.status}</p>
+                        <p class="card-text"><strong>Müraciət tarixi:</strong> ${new Date(app.created_at).toLocaleDateString('az-AZ')}</p>
+                        <div class="d-flex gap-2">
+                            <a href="/applications/${app.id}" class="btn btn-primary">Müraciəti gör</a>
+                            ${app.status === 'pending' ? `
+                                <a href="/applications/${app.id}/accept" class="btn btn-success">Qəbul et</a>
+                                <a href="/applications/${app.id}/reject" class="btn btn-danger">Rədd et</a>
+                            ` : ''}
+                            ${app.status === 'accepted' ? `
+                                ${app.contract_status === 'draft' ? `
+                                    <a href="/applications/${app.id}/contract" class="btn btn-info">Müqavilə hazırla</a>
+                                ` : app.contract_status === 'pending_tenant_signature' ? `
+                                    <a href="/applications/${app.id}/contract" class="btn btn-info">Müqavilə məlumatları</a>
+                                ` : ''}
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('') : 
+            '<div class="alert alert-info">Hal-hazırda aktiv müraciət yoxdur</div>';
+    } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('applications-list').innerHTML = 
+            '<div class="alert alert-danger">Müraciətləri yükləmək mümkün olmadı</div>';
+    }
+}
+
+function getStatusColor(status) {
+    return {
+        'pending': 'warning',
+        'approved': 'success',
+        'rejected': 'danger'
+    }[status] || 'secondary';
+}
+
+function getStatusText(status) {
+    return {
+        'pending': 'Gözləmədə',
+        'approved': 'Təsdiqlənib',
+        'rejected': 'İmtina edilib'
+    }[status] || status;
+}
+
+async function updateApplicationStatus(applicationId, status) {
+    if (!confirm('Əminsiniz?')) return;
+    
+    try {
+        const response = await fetch(`/landlord/api/applications/${applicationId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({ status })
+        });
+
+        if (!response.ok) throw new Error('Server error');
+        
+        // Reload applications after update
+        loadApplications();
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Statusu yeniləmək mümkün olmadı');
+    }
+}
+
+// Add date formatting function
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('az-AZ', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    }).replace(/\./g, '-');
+}
+
+// Load applications when page loads
+document.addEventListener('DOMContentLoaded', loadApplications);
+</script>
+{% endblock %} 

@@ -31,7 +31,7 @@ def register():
     user = User(
         name=data['name'],
         email=data['email'],
-        password_hash=generate_password_hash(data['password']),
+        password=generate_password_hash(data['password']),
         role=data['role']
     )
     
@@ -53,7 +53,7 @@ def login():
     data = request.form
     user = User.query.filter_by(email=data['email']).first()
     
-    if user and check_password_hash(user.password_hash, data['password']):
+    if user and check_password_hash(user.password, data['password']):
         login_user(user)
         next_page = request.args.get('next')
         if not next_page or url_parse(next_page).netloc != '':

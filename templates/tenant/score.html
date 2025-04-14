@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}İcarədar Skoru{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>İcarədar Skoru</h1>
+    
+    <!-- Overall Score Display -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2 class="card-title">Ümumi Skor: {{ score.total_score|round(1) }}</h2>
+            <div class="progress mb-3">
+                <div class="progress-bar" role="progressbar" 
+                     style="width: {{ score.total_score }}%"
+                     aria-valuenow="{{ score.total_score }}" 
+                     aria-valuemin="0" 
+                     aria-valuemax="100">
+                </div>
+            </div>
+            <p class="card-text">
+                {% if score.total_score >= 90 %}
+                    Çox etibarlı icarədar
+                {% elif score.total_score >= 75 %}
+                    Yaxşı icarədar
+                {% elif score.total_score >= 50 %}
+                    Orta riskli icarədar
+                {% else %}
+                    Yüksək riskli icarədar
+                {% endif %}
+            </p>
+        </div>
+    </div>
+    
+    <!-- Component Scores -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h3 class="card-title">Ödəniş İntizamı (30%)</h3>
+                    <div class="progress mb-3">
+                        <div class="progress-bar" role="progressbar" 
+                             style="width: {{ score.payment_score }}%"
+                             aria-valuenow="{{ score.payment_score }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                        </div>
+                    </div>
+                    <p class="card-text">{{ score.payment_history|length }} ödəniş</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h3 class="card-title">Əmlaka Münasibət (25%)</h3>
+                    <div class="progress mb-3">
+                        <div class="progress-bar" role="progressbar" 
+                             style="width: {{ score.property_score }}%"
+                             aria-valuenow="{{ score.property_score }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                        </div>
+                    </div>
+                    <p class="card-text">{{ score.property_history|length }} hadisə</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h3 class="card-title">İcarə Tarixçəsi (20%)</h3>
+                    <div class="progress mb-3">
+                        <div class="progress-bar" role="progressbar" 
+                             style="width: {{ score.rental_history_score }}%"
+                             aria-valuenow="{{ score.rental_history_score }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                        </div>
+                    </div>
+                    <p class="card-text">{{ score.rental_history|length }} qiymətləndirmə</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h3 class="card-title">Qonşularla Münasibət (15%)</h3>
+                    <div class="progress mb-3">
+                        <div class="progress-bar" role="progressbar" 
+                             style="width: {{ score.neighbor_score }}%"
+                             aria-valuenow="{{ score.neighbor_score }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                        </div>
+                    </div>
+                    <p class="card-text">{{ score.neighbor_history|length }} şikayət</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h3 class="card-title">Müqaviləyə Uyğunluq (10%)</h3>
+                    <div class="progress mb-3">
+                        <div class="progress-bar" role="progressbar" 
+                             style="width: {{ score.contract_score }}%"
+                             aria-valuenow="{{ score.contract_score }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                        </div>
+                    </div>
+                    <p class="card-text">{{ score.contract_history|length }} pozuntu</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- History Timeline -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h3 class="card-title">Tarixçə</h3>
+            <div class="timeline">
+                {% for event in history %}
+                <div class="timeline-item">
+                    <div class="timeline-date">{{ event.date }}</div>
+                    <div class="timeline-content">
+                        <h4>{{ event.title }}</h4>
+                        <p>{{ event.description }}</p>
+                        <span class="badge bg-{{ event.type }}">{{ event.type }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Profilim{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Profil Məlumatları</h2>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Əsas Məlumatlar</h5>
+                </div>
+                <div class="card-body">
+                    <form id="basic-info-form">
+                        <div class="mb-3">
+                            <label class="form-label">Ad</label>
+                            <input type="text" class="form-control" name="name" value="{{ current_user.name }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" value="{{ current_user.email }}" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Yeni Şifrə</label>
+                            <input type="password" class="form-control" name="new_password">
+                            <small class="text-muted">Şifrəni dəyişmək istəmirsinizsə boş buraxın</small>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Məlumatları Yenilə</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Statistika</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="text-center mb-3">
+                                <h3 id="total-properties">0</h3>
+                                <small class="text-muted">Ümumi Əmlak</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center mb-3">
+                                <h3 id="active-contracts">0</h3>
+                                <small class="text-muted">Aktiv Müqavilə</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center">
+                                <h3 id="avg-rating">0.0</h3>
+                                <small class="text-muted">Ortalama Reytinq</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center">
+                                <h3 id="total-income">0 AZN</h3>
+                                <small class="text-muted">Aylıq Gəlir</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Şəxsi Məlumatlar</h5>
+                </div>
+                <div class="card-body">
+                    {% if current_user.contract_info %}
+                        {% set info = current_user.contract_info[0] %}
+                        <div class="info-group">
+                            <p><strong>Ad Soyad Ata adı:</strong> {{ info.first_name }} {{ info.last_name }} {{ info.father_name }}</p>
+                            <p><strong>Şəxsiyyət vəsiqəsi:</strong> {{ info.id_number }}</p>
+                            <p><strong>FIN:</strong> {{ info.fin }}</p>
+                            <p><strong>Doğum yeri:</strong> {{ info.birth_place if info and info.birth_place else 'Təyin edilməyib' }}</p>
+                            <p><strong>Doğum tarixi:</strong> {{ info.birth_date.strftime('%d-%m-%Y') if info and info.birth_date else 'Təyin edilməyib' }}</p>
+                            <p><strong>Qeydiyyat ünvanı:</strong> {{ info.address }}</p>
+                            <p><strong>Telefon:</strong> {{ info.phone }}</p>
+                        </div>
+                        <a href="{{ url_for('applications.manage_landlord_info', application_id='new') }}" 
+                           class="btn btn-outline-primary">
+                            Məlumatları Yenilə
+                        </a>
+                    {% else %}
+                        <div class="alert alert-info">
+                            Müqavilə üçün şəxsi məlumatlarınız qeyd edilməyib.
+                            <a href="{{ url_for('applications.manage_landlord_info', application_id='new') }}" 
+                               class="btn btn-primary mt-2">
+                                Məlumatları Əlavə Et
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Load statistics
+async function loadStatistics() {
+    try {
+        const response = await fetch('/landlord/api/statistics');
+        const stats = await response.json();
+        
+        document.getElementById('total-properties').textContent = stats.total_properties;
+        document.getElementById('active-contracts').textContent = stats.active_contracts;
+        document.getElementById('avg-rating').textContent = stats.average_rating.toFixed(1);
+        document.getElementById('total-income').textContent = `${stats.monthly_income} AZN`;
+    } catch (error) {
+        console.error('Error loading statistics:', error);
+    }
+}
+
+// Handle form submission
+document.getElementById('basic-info-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+    
+    try {
+        const response = await fetch('/landlord/api/profile', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) throw new Error('Server error');
+        
+        const result = await response.json();
+        if (result.success) {
+            alert('Məlumatlar uğurla yeniləndi');
+            if (data.new_password) {
+                window.location.href = '/login';
+            } else {
+                window.location.reload();
+            }
+        } else {
+            alert(result.message || 'Xəta baş verdi');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Məlumatları yeniləmək mümkün olmadı');
+    }
+});
+
+// Load statistics when page loads
+document.addEventListener('DOMContentLoaded', loadStatistics);
+</script>
+{% endblock %} 

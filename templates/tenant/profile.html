@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Profilim{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Profil Məlumatları</h2>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Əsas Məlumatlar</h5>
+                </div>
+                <div class="card-body">
+                    <form id="basic-info-form">
+                        <div class="mb-3">
+                            <label class="form-label">Ad</label>
+                            <input type="text" class="form-control" name="name" value="{{ current_user.name }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" value="{{ current_user.email }}" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Yeni Şifrə</label>
+                            <input type="password" class="form-control" name="new_password">
+                            <small class="text-muted">Şifrəni dəyişmək istəmirsinizsə boş buraxın</small>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Məlumatları Yenilə</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Şəxsi Məlumatlar</h5>
+                </div>
+                <div class="card-body">
+                    {% if current_user.contract_info %}
+                        {% set info = current_user.contract_info[0] %}
+                        <div class="info-group">
+                            <p><strong>Ad Soyad Ata adı:</strong> {{ info.first_name }} {{ info.last_name }} {{ info.father_name }}</p>
+                            <p><strong>Şəxsiyyət vəsiqəsi:</strong> {{ info.id_number }}</p>
+                            <p><strong>FIN:</strong> {{ info.fin }}</p>
+                            <p><strong>Doğum yeri:</strong> {{ info.birth_place if info and info.birth_place else 'Təyin edilməyib' }}</p>
+                            <p><strong>Doğum tarixi:</strong> {{ info.birth_date.strftime('%d-%m-%Y') if info and info.birth_date else 'Təyin edilməyib' }}</p>
+                            <p><strong>Qeydiyyat ünvanı:</strong> {{ info.address }}</p>
+                            <p><strong>Telefon:</strong> {{ info.phone }}</p>
+                        </div>
+                        <a href="{{ url_for('applications.manage_tenant_info', application_id='new') }}" 
+                           class="btn btn-outline-primary">
+                            Məlumatları Yenilə
+                        </a>
+                    {% else %}
+                        <div class="alert alert-info">
+                            Müqavilə üçün şəxsi məlumatlarınız qeyd edilməyib.
+                            <a href="{{ url_for('applications.manage_tenant_info', application_id='new') }}" 
+                               class="btn btn-primary mt-2">
+                                Məlumatları Əlavə Et
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Kredit Məlumatları</h5>
+                </div>
+                <div class="card-body">
+                    {% if current_user.questionnaire and current_user.questionnaire|length > 0 %}
+                        {% set latest_questionnaire = current_user.questionnaire[0] %}
+                        <p><strong>Kredit Skoru:</strong> {{ latest_questionnaire.credit_score }}</p>
+                        <p><strong>Son Yenilənmə:</strong> {{ latest_questionnaire.created_at.strftime('%d.%m.%Y') }}</p>
+                        <a href="{{ url_for('questionnaire.questionnaire') }}" class="btn btn-outline-primary">
+                            Kredit Skorunu Yenilə
+                        </a>
+                    {% else %}
+                        <div class="alert alert-info">
+                            Kredit skorunuz hesablanmayıb.
+                            <a href="{{ url_for('questionnaire.questionnaire') }}" class="btn btn-primary mt-2">
+                                Kredit Skorunu Hesabla
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('basic-info-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+    
+    try {
+        const response = await fetch('/tenant/api/profile', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) throw new Error('Server error');
+        
+        const result = await response.json();
+        if (result.success) {
+            alert('Məlumatlar uğurla yeniləndi');
+            if (data.new_password) {
+                window.location.href = '/login';
+            } else {
+                window.location.reload();
+            }
+        } else {
+            alert(result.message || 'Xəta baş verdi');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Məlumatları yeniləmək mümkün olmadı');
+    }
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+
+{% block title %}Qiymətləndirmələr{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Qiymətləndirmələr</h2>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" id="ratingsTabs" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="received-tab" data-bs-toggle="tab" href="#received" role="tab" aria-controls="received" aria-selected="true">Aldığım qiymətləndirmələr</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="given-tab" data-bs-toggle="tab" href="#given" role="tab" aria-controls="given" aria-selected="false">Verdiyim qiymətləndirmələr</a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content" id="ratingsTabContent">
+                        <div class="tab-pane fade show active" id="received" role="tabpanel" aria-labelledby="received-tab">
+                            <div id="received-ratings-list">
+                                <!-- Received ratings will be loaded here -->
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="given" role="tabpanel" aria-labelledby="given-tab">
+                            <div id="given-ratings-list">
+                                <!-- Given ratings will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function loadReceivedRatings() {
+    try {
+        const response = await fetch('/landlord/api/ratings/received');
+        const ratings = await response.json();
+        
+        const ratingsList = document.getElementById('received-ratings-list');
+        
+        if (ratings.length > 0) {
+            ratingsList.innerHTML = ratings.map(rating => `
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">${rating.property.title}</h5>
+                        <p class="card-text">
+                            <strong>Ünvan:</strong> ${rating.property.address}<br>
+                            <strong>İcarəçi:</strong> ${rating.tenant.name}<br>
+                            <strong>Tarix:</strong> ${new Date(rating.created_at).toLocaleDateString('az-AZ')}
+                        </p>
+                        
+                        <div class="rating-details">
+                            <div class="rating-item">
+                                <span class="rating-label">Ödəniş intizamı:</span>
+                                <div class="progress">
+                                    <div class="progress-bar" role="progressbar" 
+                                         style="width: ${rating.reliability * 20}%" 
+                                         aria-valuenow="${rating.reliability}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="5">
+                                        ${rating.reliability}/5
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="rating-item">
+                                <span class="rating-label">Əmlaka münasibət:</span>
+                                <div class="progress">
+                                    <div class="progress-bar" role="progressbar" 
+                                         style="width: ${rating.responsibility * 20}%" 
+                                         aria-valuenow="${rating.responsibility}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="5">
+                                        ${rating.responsibility}/5
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="rating-item">
+                                <span class="rating-label">Ünsiyyət və əməkdaşlıq:</span>
+                                <div class="progress">
+                                    <div class="progress-bar" role="progressbar" 
+                                         style="width: ${rating.communication * 20}%" 
+                                         aria-valuenow="${rating.communication}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="5">
+                                        ${rating.communication}/5
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="rating-item">
+                                <span class="rating-label">Qonşular və binaya münasibət:</span>
+                                <div class="progress">
+                                    <div class="progress-bar" role="progressbar" 
+                                         style="width: ${rating.respect * 20}%" 
+                                         aria-valuenow="${rating.respect}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="5">
+                                        ${rating.respect}/5
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="rating-item">
+                                <span class="rating-label">Müqavilə şərtlərinə uyğunluq:</span>
+                                <div class="progress">
+                                    <div class="progress-bar" role="progressbar" 
+                                         style="width: ${rating.compliance * 20}%" 
+                                         aria-valuenow="${rating.compliance}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="5">
+                                        ${rating.compliance}/5
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        ${rating.review ? `
+                            <div class="review mt-3">
+                                <strong>Rəy:</strong>
+                                <p class="mt-2">${rating.review}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            ratingsList.innerHTML = '<div class="alert alert-info">Hal-hazırda aldığınız qiymətləndirmə yoxdur</div>';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('received-ratings-list').innerHTML = 
+            '<div class="alert alert-danger">Qiymətləndirmələri yükləmək mümkün olmadı</div>';
+    }
+}
+
+async function loadGivenRatings() {
+    try {
+        const response = await fetch('/landlord/api/ratings/given');
+        const ratings = await response.json();
+        
+        const ratingsList = document.getElementById('given-ratings-list');
+        
+        if (ratings.length > 0) {
+            ratingsList.innerHTML = ratings.map(rating => `
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">${rating.property.title}</h5>
+                        <p class="card-text">
+                            <strong>Ünvan:</strong> ${rating.property.address}<br>
+                            <strong>İcarəçi:</strong> ${rating.tenant.name}<br>
+                            <strong>Tarix:</strong> ${new Date(rating.created_at).toLocaleDateString('az-AZ')}
+                        </p>
+                        
+                        <div class="rating-details">
+                            <div class="rating-item">
+                                <span class="rating-label">Ödəniş intizamı:</span>
+                                <div class="progress">
+                                    <div class="progress-bar" role="progressbar" 
+                                         style="width: ${rating.reliability * 20}%" 
+                                         aria-valuenow="${rating.reliability}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="5">
+                                        ${rating.reliability}/5
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="rating-item">
+                                <span class="rating-label">Əmlaka münasibət:</span>
+                                <div class="progress">
+                                    <div class="progress-bar" role="progressbar" 
+                                         style="width: ${rating.responsibility * 20}%" 
+                                         aria-valuenow="${rating.responsibility}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="5">
+                                        ${rating.responsibility}/5
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="rating-item">
+                                <span class="rating-label">Ünsiyyət və əməkdaşlıq:</span>
+                                <div class="progress">
+                                    <div class="progress-bar" role="progressbar" 
+                                         style="width: ${rating.communication * 20}%" 
+                                         aria-valuenow="${rating.communication}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="5">
+                                        ${rating.communication}/5
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="rating-item">
+                                <span class="rating-label">Qonşular və binaya münasibət:</span>
+                                <div class="progress">
+                                    <div class="progress-bar" role="progressbar" 
+                                         style="width: ${rating.respect * 20}%" 
+                                         aria-valuenow="${rating.respect}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="5">
+                                        ${rating.respect}/5
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="rating-item">
+                                <span class="rating-label">Müqavilə şərtlərinə uyğunluq:</span>
+                                <div class="progress">
+                                    <div class="progress-bar" role="progressbar" 
+                                         style="width: ${rating.compliance * 20}%" 
+                                         aria-valuenow="${rating.compliance}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="5">
+                                        ${rating.compliance}/5
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        ${rating.review ? `
+                            <div class="review mt-3">
+                                <strong>Rəy:</strong>
+                                <p class="mt-2">${rating.review}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            ratingsList.innerHTML = '<div class="alert alert-info">Hal-hazırda verdiyiniz qiymətləndirmə yoxdur</div>';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('given-ratings-list').innerHTML = 
+            '<div class="alert alert-danger">Qiymətləndirmələri yükləmək mümkün olmadı</div>';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadReceivedRatings();
+    
+    // Load given ratings when the tab is clicked
+    document.getElementById('given-tab').addEventListener('click', loadGivenRatings);
+});
+</script>
+
+<style>
+.rating-details {
+    margin: 20px 0;
+}
+
+.rating-item {
+    margin-bottom: 15px;
+}
+
+.rating-label {
+    display: inline-block;
+    width: 200px;
+    font-weight: bold;
+}
+
+.progress {
+    height: 25px;
+    margin-top: 5px;
+}
+
+.progress-bar {
+    background-color: #28a745;
+    color: white;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.review {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    border-left: 4px solid #6c757d;
+}
+
+.nav-tabs .nav-link {
+    color: #495057;
+}
+
+.nav-tabs .nav-link.active {
+    color: #0d6efd;
+    font-weight: bold;
+}
+</style>
+{% endblock %} 

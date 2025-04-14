@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}İcarədar Paneli{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Xoş gəlmisiniz, {{ current_user.name }}</h2>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Mövcud Əmlaklar</h5>
+                    <div class="filters">
+                        <input type="text" class="form-control form-control-sm d-inline-block w-auto" 
+                               id="searchInput" placeholder="Axtar...">
+                        <select class="form-select form-select-sm d-inline-block w-auto" id="sortSelect">
+                            <option value="price_asc">Qiymət (Artan)</option>
+                            <option value="price_desc">Qiymət (Azalan)</option>
+                            <option value="rating_desc">Reytinq (Yüksək)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="properties-list">
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Yüklənir...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let properties = [];
+
+async function loadProperties() {
+    try {
+        const response = await fetch('/api/public/properties');
+        if (!response.ok) throw new Error('Server error');
+        
+        properties = await response.json();
+        renderProperties();
+    } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('properties-list').innerHTML = 
+            '<div class="alert alert-danger">Əmlakları yükləmək mümkün olmadı</div>';
+    }
+}
+
+function renderProperties(filteredProps = null) {
+    const propsToRender = filteredProps || properties;
+    const propertiesList = document.getElementById('properties-list');
+    
+    propertiesList.innerHTML = propsToRender.length ? 
+        propsToRender.map(property => `
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h5 class="card-title">${property.title}</h5>
+                            <p class="card-text">
+                                <strong>Ünvan:</strong> ${property.address}<br>
+                                <strong>Aylıq kirayə:</strong> ${property.monthly_rent} ${property.currency}<br>
+                                <strong>Mülk sahibi:</strong> ${property.landlord.name}
+                                <span class="badge bg-info">${property.landlord.avg_rating} ★</span>
+                                <small>(${property.landlord.ratings_count} rəy)</small>
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <button class="btn btn-primary" 
+                                    onclick="applyForProperty('${property.id}')">
+                                Müraciət et
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('') : 
+        '<div class="alert alert-info">Hal-hazırda boş əmlak yoxdur</div>';
+}
+
+async function applyForProperty(propertyId) {
+    if (!confirm('Bu əmlak üçün müraciət etmək istədiyinizə əminsiniz?')) return;
+    
+    try {
+        const response = await fetch('/api/applications', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({ property_id: propertyId })
+        });
+
+        const result = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(result.error || 'Server error');
+        }
+        
+        alert(result.message || 'Müraciətiniz qeydə alındı');
+        window.location.href = '/tenant/applications';
+    } catch (error) {
+        console.error('Error:', error);
+        alert(error.message || 'Müraciət göndərmək mümkün olmadı');
+    }
+}
+
+// Search and sort functionality
+document.getElementById('searchInput').addEventListener('input', (e) => {
+    const searchText = e.target.value.toLowerCase();
+    const filteredProps = properties.filter(p => 
+        p.title.toLowerCase().includes(searchText) || 
+        p.address.toLowerCase().includes(searchText)
+    );
+    renderProperties(filteredProps);
+});
+
+document.getElementById('sortSelect').addEventListener('change', (e) => {
+    const sortValue = e.target.value;
+    const sortedProps = [...properties].sort((a, b) => {
+        switch(sortValue) {
+            case 'price_asc':
+                return a.monthly_rent - b.monthly_rent;
+            case 'price_desc':
+                return b.monthly_rent - a.monthly_rent;
+            case 'rating_desc':
+                return b.landlord.avg_rating - a.landlord.avg_rating;
+            default:
+                return 0;
+        }
+    });
+    renderProperties(sortedProps);
+});
+
+// Load properties when page loads
+document.addEventListener('DOMContentLoaded', loadProperties);
+</script>
+{% endblock %} 

@@ -1,9 +1,13 @@
-import os
 import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import os
 
-from app import create_app
+# Add project root directory to Python path
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(project_root)
+
+from flask import Flask
 from models import db, User
+from app import create_app
 from werkzeug.security import generate_password_hash
 
 def create_tenants():
@@ -34,14 +38,25 @@ def create_tenants():
     app = create_app()
     with app.app_context():
         for tenant_data in tenants_data:
+            # Check if tenant exists
+            existing = User.query.filter_by(email=tenant_data['email']).first()
+            if existing:
+                print(f"Tenant {tenant_data['email']} already exists")
+                continue
+
             tenant = User(
                 email=tenant_data['email'],
-                password_hash=generate_password_hash(tenant_data['password']),
+                password=generate_password_hash(tenant_data['password']),  # Changed from password_hash
                 name=tenant_data['name'],
                 role='tenant'
             )
-            db.session.add(tenant)
-        
+            try:
+                db.session.add(tenant)
+                print(f"Created tenant: {tenant_data['email']}")
+            except Exception as e:
+                db.session.rollback()
+                print(f"Error creating tenant {tenant_data['email']}: {str(e)}")
+
         db.session.commit()
         
         print("\nTenants created successfully!")

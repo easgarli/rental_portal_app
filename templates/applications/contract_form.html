@@ -57,21 +57,21 @@
             <div class="col-md-6">
                 <div class="info-row">
                     <div class="info-label">Ünvan:</div>
-                    <div class="info-value">{{ application.property.address }}</div>
+                    <div class="info-value">{{ application.rental_property.address }}</div>
                 </div>
                 <div class="info-row">
                     <div class="info-label">Reyestr Nömrəsi:</div>
-                    <div class="info-value">{{ application.property.registry_number or 'Təyin edilməyib' }}</div>
+                    <div class="info-value">{{ application.rental_property.registry_number or 'Təyin edilməyib' }}</div>
                 </div>
             </div>
             <div class="col-md-6">
                 <div class="info-row">
                     <div class="info-label">Aylıq İcarə Qiyməti:</div>
-                    <div class="info-value">{{ "%.2f"|format(application.property.monthly_rent) }} AZN</div>
+                    <div class="info-value">{{ "%.2f"|format(application.rental_property.monthly_rent) }} AZN</div>
                 </div>
                 <div class="info-row">
                     <div class="info-label">Sahə:</div>
-                    <div class="info-value">{{ application.property.area or 'Təyin edilməyib' }} m²</div>
+                    <div class="info-value">{{ application.rental_property.area or 'Təyin edilməyib' }} m²</div>
                 </div>
             </div>
         </div>
@@ -107,7 +107,7 @@
                     <div class="info-label">Doğum Yeri/Tarixi:</div>
                     <div class="info-value">
                         {{ landlord_info.birth_place if landlord_info else '' }} / 
-                        {{ landlord_info.birth_date.strftime('%d.%m.%Y') if landlord_info and landlord_info.birth_date else '' }}
+                        {{ landlord_info.birth_date.strftime('%d-%m-%Y') if landlord_info and landlord_info.birth_date else '' }}
                     </div>
                 </div>
                 <div class="info-row">
@@ -148,7 +148,7 @@
                     <div class="info-label">Doğum Yeri/Tarixi:</div>
                     <div class="info-value">
                         {{ tenant_info.birth_place if tenant_info else '' }} / 
-                        {{ tenant_info.birth_date.strftime('%d.%m.%Y') if tenant_info and tenant_info.birth_date else '' }}
+                        {{ tenant_info.birth_date.strftime('%d-%m-%Y') if tenant_info and tenant_info.birth_date else '' }}
                     </div>
                 </div>
                 <div class="info-row">

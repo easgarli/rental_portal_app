@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Müqavilə Məlumatları - {{ property.title }}</h4>
+                </div>
+                <div class="card-body">
+                    <div class="contract-status mb-4">
+                        <h5>Müqavilə Hazırlığı</h5>
+                        <div class="progress mb-3">
+                            <div class="progress-bar" role="progressbar" style="width: {{ contract_progress }}%">
+                                {{ contract_progress }}%
+                            </div>
+                        </div>
+
+                        <div class="steps">
+                            <a href="{{ url_for('applications.manage_landlord_info', application_id=application.id) }}" 
+                               class="btn btn-outline-primary mb-2 {% if not landlord_info %}btn-primary{% endif %}">
+                                1. Mülk sahibinin məlumatları
+                            </a>
+
+                            <a href="{{ url_for('applications.manage_property_info', application_id=application.id) }}" 
+                               class="btn btn-outline-primary mb-2 {% if not property_info_complete %}btn-primary{% endif %}">
+                                2. Əmlak məlumatları
+                            </a>
+
+                            {% if contract_ready %}
+                                <a href="{{ url_for('applications.generate_contract', application_id=application.id) }}" 
+                                   class="btn btn-success">
+                                    Müqaviləni yüklə
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <a href="{{ url_for('landlord.properties') }}" class="btn btn-secondary">Geri</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

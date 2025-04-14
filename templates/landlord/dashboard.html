@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Mülk Sahibi Paneli{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Əmlak Statistikası</h5>
+                    <div class="stats">
+                        <p>Aktiv Əmlaklar: <span id="active-properties">0</span></p>
+                        <p>Kirayədə olan: <span id="rented-properties">0</span></p>
+                        <p>Gözləmədə olan: <span id="pending-properties">0</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Müraciətlər</h5>
+                    <div class="stats">
+                        <p>Yeni Müraciətlər: <span id="new-applications">0</span></p>
+                        <p>Aktiv Müqavilələr: <span id="active-contracts">0</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Reytinq</h5>
+                    <div id="landlord-rating">
+                        <canvas id="landlord-rating-gauge"></canvas>
+                        <div id="rating-value" class="text-center mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Son Aktivlik</h5>
+                    <div id="recent-activity">
+                        <!-- Activity will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if not current_user.contract_info %}
+    <div class="alert alert-warning">
+        Müqavilə məlumatlarınız tamamlanmayıb. 
+        <a href="{{ url_for('applications.new_landlord_info') }}" class="alert-link">
+            Məlumatları tamamlayın
+        </a>
+    </div>
+{% endif %}
+
+<script src="https://bernii.github.io/gauge.js/dist/gauge.min.js"></script>
+<script>
+// Add your existing gauge initialization and data loading code here
+</script>
+{% endblock %} 

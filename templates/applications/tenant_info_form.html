@@ -62,7 +62,7 @@
                         <div class="mb-3">
                             <label class="form-label">Doğum tarixi</label>
                             <input type="date" class="form-control" name="birth_date" 
-                                   value="{{ contract_info.birth_date.strftime('%Y-%m-%d') if contract_info and contract_info.birth_date else '' }}" required>
+                                   value="{{ contract_info.birth_date.strftime('%d-%m-%Y') if contract_info and contract_info.birth_date else '' }}" required>
                         </div>
 
                         <div class="mb-3">

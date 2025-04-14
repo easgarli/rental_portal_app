@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Əmlak üzrə Müraciətlər{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>{{ property.title }} - Müraciətlər</h2>
+            <a href="{{ url_for('landlord.properties') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Geri qayıt
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            {% if applications %}
+                {% for application in applications %}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ application.tenant_user.name }}</h5>
+                            <p class="card-text">
+                                <strong>Status:</strong> 
+                                <span class="badge {% if application.status == 'approved' %}bg-success
+                                                  {% elif application.status == 'rejected' %}bg-danger
+                                                  {% else %}bg-warning{% endif %}">
+                                    {{ application.status }}
+                                </span><br>
+                                <strong>Tarix:</strong> {{ application.created_at.strftime('%d-%m-%Y') }}
+                            </p>
+                            {% if application.status == 'pending' %}
+                            <div class="btn-group">
+                                <form method="POST" action="{{ url_for('landlord.approve_application', application_id=application.id) }}" 
+                                      style="display: inline;">
+                                    <button type="submit" class="btn btn-success btn-sm">Təsdiq et</button>
+                                </form>
+                                <form method="POST" action="{{ url_for('landlord.reject_application', application_id=application.id) }}" 
+                                      style="display: inline;">
+                                    <button type="submit" class="btn btn-danger btn-sm">Rədd et</button>
+                                </form>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-info">
+                    Bu əmlak üçün müraciət yoxdur.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

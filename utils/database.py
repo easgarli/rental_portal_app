@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 # print("POSTGRES_USER:", os.getenv('POSTGRES_USER'))
 # print("From direct environ:", os.environ.get('POSTGRES_USER'))
 
+
 class DatabaseConfig:
     """Database configuration container"""
     def __init__(self, 
@@ -40,6 +41,7 @@ class DatabaseConfig:
         self.user = user
         self.password = password
         self.default_db = default_db
+        self.app_db = 'rental_portal'  # Changed from tenant_score to rental_portal
         self.min_connections = min_connections
         self.max_connections = max_connections
 
@@ -408,7 +410,7 @@ def restore_data(conn, backup):
 
 def reset_db():
     """Drop all tables and recreate them with backup option"""
-    target_db = os.getenv('POSTGRES_DB')
+    target_db = os.getenv('APP_DB')
     print(f"WARNING: This will reset all tables in database '{target_db}'")
     
     backup_file = None
@@ -430,26 +432,23 @@ def reset_db():
     with db.engine.connect() as conn:
         # Start a transaction
         with conn.begin():
-            # Drop redundant tables first
-            conn.execute(db.text("DROP TABLE IF EXISTS tenant_score CASCADE"))
-            conn.execute(db.text("DROP TABLE IF EXISTS landlord_rating CASCADE"))
-            conn.execute(db.text("DROP TABLE IF EXISTS tenant_rating CASCADE"))
-            conn.execute(db.text("DROP TABLE IF EXISTS \"user\" CASCADE"))
-            
             # Drop existing tables and types
             conn.execute(db.text("DROP TABLE IF EXISTS users CASCADE"))
-            conn.execute(db.text("DROP TABLE IF EXISTS ratings CASCADE"))
-            conn.execute(db.text("DROP TABLE IF EXISTS tenant_scores CASCADE"))
             conn.execute(db.text("DROP TABLE IF EXISTS properties CASCADE"))
             conn.execute(db.text("DROP TABLE IF EXISTS tenant_questionnaires CASCADE"))
+            conn.execute(db.text("DROP TABLE IF EXISTS tenant_scores CASCADE"))
+            conn.execute(db.text("DROP TABLE IF EXISTS ratings CASCADE"))
             conn.execute(db.text("DROP TABLE IF EXISTS rental_applications CASCADE"))
             conn.execute(db.text("DROP TABLE IF EXISTS user_contract_info CASCADE"))
-            conn.execute(db.text("DROP TYPE IF EXISTS user_roles CASCADE"))
-            conn.execute(db.text("DROP TYPE IF EXISTS property_status CASCADE"))
+            conn.execute(db.text("DROP TABLE IF EXISTS contracts CASCADE"))
+            conn.execute(db.text("DROP TABLE IF EXISTS payments CASCADE"))
+            conn.execute(db.text("DROP TABLE IF EXISTS complaints CASCADE"))
+            conn.execute(db.text("DROP TABLE IF EXISTS property_damages CASCADE"))
+            conn.execute(db.text("DROP TABLE IF EXISTS contract_violations CASCADE"))
             
             # Create enum types
             conn.execute(db.text("CREATE TYPE user_roles AS ENUM ('tenant', 'landlord', 'admin')"))
             conn.execute(db.text("CREATE TYPE property_status AS ENUM ('available', 'rented', 'unavailable')"))
-    
+
     # Create tables from models
     db.create_all()

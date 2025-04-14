@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Müraciət Məlumatları</h4>
+                </div>
+                <div class="card-body">
+                    <div class="property-info mb-4">
+                        <h5>Əmlak Məlumatları</h5>
+                        <p><strong>Başlıq:</strong> {{ application.rental_property.title }}</p>
+                        <p><strong>Ünvan:</strong> {{ application.rental_property.address }}</p>
+                        <p><strong>Aylıq kirayə:</strong> {{ application.rental_property.monthly_rent }} {{ application.rental_property.currency }}</p>
+                    </div>
+
+                    <div class="status-info mb-4">
+                        <h5>Müraciət Statusu</h5>
+                        <p>
+                            <span class="badge {% if application.status == 'approved' %}bg-success
+                                           {% elif application.status == 'rejected' %}bg-danger
+                                           {% else %}bg-warning{% endif %}">
+                                {{ application.status }}
+                            </span>
+                        </p>
+                        <p><strong>Müraciət tarixi:</strong> {{ application.created_at.strftime('%d-%m-%Y') }}</p>
+                    </div>
+
+                    {% if application.status == 'approved' %}
+                        <div class="contract-info mb-4">
+                            <h5>Müqavilə Məlumatları</h5>
+                            <div class="progress mb-3">
+                                <div class="progress-bar" role="progressbar" style="width: {{ contract_progress }}%">
+                                    {{ contract_progress }}%
+                                </div>
+                            </div>
+
+                            <div class="contract-status mb-3">
+                                <strong>Müqavilə statusu:</strong>
+                                <span class="badge {% if application.contract_status == 'pending_signatures' %}bg-warning
+                                                  {% elif application.contract_status == 'active' %}bg-success
+                                                  {% else %}bg-secondary{% endif %}">
+                                    {% if application.contract_status == 'pending_signatures' %}İmza gözləyir
+                                    {% elif application.contract_status == 'active' %}Aktiv
+                                    {% else %}Hazırlanır{% endif %}
+                                </span>
+                            </div>
+                            
+                            <div class="steps">
+                                {% if current_user.role == 'tenant' %}
+                                    <a href="{{ url_for('applications.manage_tenant_info', application_id=application.id) }}" 
+                                       class="btn btn-outline-primary mb-2 {% if not tenant_info %}btn-primary{% endif %}">
+                                        1. İcarəçinin məlumatları
+                                    </a>
+
+                                    {% if application.contract_status == 'pending_signatures' and not application.tenant_signature %}
+                                        <button class="btn btn-success" onclick="signContract('{{ application.id }}')">
+                                            Müqaviləni imzala
+                                        </button>
+                                    {% endif %}
+
+                                    {% if application.tenant_signature %}
+                                        <span class="badge bg-success">İmzalanıb</span>
+                                    {% endif %}
+                                {% endif %}
+
+                                {% if application.contract_data %}
+                                    <a href="{{ url_for('applications.download_contract', application_id=application.id) }}" 
+                                       class="btn btn-info">
+                                        Müqaviləni yüklə
+                                    </a>
+                                {% endif %}
+                            </div>
+
+                            {% if application.contract_status == 'pending_signatures' %}
+                                <div class="signatures mt-3">
+                                    <p>
+                                        <strong>Mülk sahibinin imzası:</strong>
+                                        {% if application.landlord_signature %}
+                                            <span class="text-success">✓ İmzalanıb</span>
+                                        {% else %}
+                                            <span class="text-warning">Gözləyir</span>
+                                        {% endif %}
+                                    </p>
+                                    <p>
+                                        <strong>İcarəçinin imzası:</strong>
+                                        {% if application.tenant_signature %}
+                                            <span class="text-success">✓ İmzalanıb</span>
+                                        {% else %}
+                                            <span class="text-warning">Gözləyir</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+
+                    <div class="actions mt-4">
+                        {% if current_user.role == 'landlord' %}
+                            <a href="{{ url_for('landlord.applications') }}" class="btn btn-secondary">Geri</a>
+                        {% else %}
+                            <a href="{{ url_for('tenant.applications') }}" class="btn btn-secondary">Geri</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if current_user.role == 'tenant' %}
+<script>
+async function signContract(applicationId) {
+    if (!confirm('Müqaviləni imzalamaq istədiyinizə əminsiniz?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/applications/${applicationId}/contract/sign`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            }
+        });
+
+        if (!response.ok) throw new Error('Server error');
+
+        const result = await response.json();
+        if (result.success) {
+            alert('Müqavilə uğurla imzalandı');
+            window.location.reload();
+        } else {
+            alert(result.message || 'Xəta baş verdi');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Müqaviləni imzalamaq mümkün olmadı');
+    }
+}
+</script>
+{% endif %}
+{% endblock %} 

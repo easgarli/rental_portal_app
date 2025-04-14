@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Əmlaklarım{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Əmlaklarım</h2>
+            <a href="{{ url_for('landlord.add_property') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Yeni Əmlak
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            {% if properties %}
+                {% for property in properties %}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ property.title }}</h5>
+                            <p class="card-text">
+                                <strong>Ünvan:</strong> {{ property.address }}<br>
+                                <strong>Aylıq kirayə:</strong> {{ property.monthly_rent }} {{ property.currency }}<br>
+                                <strong>Status:</strong> 
+                                <span class="badge {% if property.status == 'available' %}bg-success
+                                                  {% elif property.status == 'pending_contract' %}bg-warning
+                                                  {% elif property.status == 'rented' %}bg-info
+                                                  {% else %}bg-danger{% endif %}">
+                                    {% if property.status == 'available' %}Boş
+                                    {% elif property.status == 'pending_contract' %}Müqavilə gözləyir
+                                    {% elif property.status == 'rented' %}Kirayədə
+                                    {% else %}Əlçatmaz{% endif %}
+                                </span>
+                            </p>
+                            <div class="btn-group">
+                                <a href="{{ url_for('landlord.edit_property', property_id=property.id) }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-edit"></i> Düzəliş et
+                                </a>
+                                <a href="{{ url_for('landlord.property_applications', property_id=property.id) }}" 
+                                   class="btn btn-sm btn-outline-info">
+                                    <i class="fas fa-list"></i> Müraciətlər
+                                </a>
+                                {% if property.status in ['pending_contract', 'rented'] %}
+                                <a href="{{ url_for('landlord.property_contract', property_id=property.id) }}" 
+                                   class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-file-contract"></i> Müqavilə
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-info">
+                    Hal-hazırda əmlakınız yoxdur. Yeni əmlak əlavə etmək üçün yuxarıdakı düyməni istifadə edin.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

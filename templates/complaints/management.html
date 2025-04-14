@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+
+{% block title %}Şikayətlərin İdarə Edilməsi{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Şikayətlərin İdarə Edilməsi</h1>
+    
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Filterlər</h5>
+            <form id="complaintFilters" class="row g-3">
+                <div class="col-md-3">
+                    <label for="status" class="form-label">Status</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">Hamısı</option>
+                        <option value="open">Açıq</option>
+                        <option value="resolved">Həll olunub</option>
+                        <option value="closed">Bağlı</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="severity" class="form-label">Dərəcə</label>
+                    <select class="form-select" id="severity" name="severity">
+                        <option value="">Hamısı</option>
+                        <option value="minor">Kiçik</option>
+                        <option value="moderate">Orta</option>
+                        <option value="serious">Ciddi</option>
+                        <option value="eviction">Çıxarılma</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="dateFrom" class="form-label">Tarixdən</label>
+                    <input type="date" class="form-control" id="dateFrom" name="dateFrom">
+                </div>
+                <div class="col-md-3">
+                    <label for="dateTo" class="form-label">Tarixə</label>
+                    <input type="date" class="form-control" id="dateTo" name="dateTo">
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Filterlə</button>
+                    <button type="reset" class="btn btn-secondary">Təmizlə</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Summary Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Ümumi Şikayətlər</h5>
+                    <p class="card-text display-6">{{ total_complaints }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Açıq</h5>
+                    <p class="card-text display-6">{{ open_complaints }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Həll Olunub</h5>
+                    <p class="card-text display-6">{{ resolved_complaints }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Ciddi</h5>
+                    <p class="card-text display-6">{{ serious_complaints }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Complaint List -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Tarix</th>
+                            <th>Əmlak</th>
+                            <th>İcarədar</th>
+                            <th>Dərəcə</th>
+                            <th>Status</th>
+                            <th>Əməliyyatlar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for complaint in complaints %}
+                        <tr>
+                            <td>{{ complaint.id }}</td>
+                            <td>{{ complaint.created_at.strftime('%d-%m-%Y') }}</td>
+                            <td>
+                                <a href="{{ url_for('properties.view_property', property_id=complaint.property_id) }}">
+                                    Əmlak #{{ complaint.property_id[:8] }}
+                                </a>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('users.view_user', user_id=complaint.tenant_id) }}">
+                                    {{ complaint.tenant.name }}
+                                </a>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ complaint.severity_color }}">
+                                    {{ complaint.severity_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ complaint.status_color }}">
+                                    {{ complaint.status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-info" 
+                                            onclick="viewComplaint('{{ complaint.id }}')">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    {% if complaint.status == 'open' %}
+                                    <button class="btn btn-sm btn-success" 
+                                            onclick="resolveComplaint('{{ complaint.id }}')">
+                                        <i class="bi bi-check-circle"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if pagination %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if pagination.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('complaints.management', page=pagination.prev_num) }}">Əvvəlki</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page in pagination.iter_pages() %}
+                        {% if page %}
+                            <li class="page-item {% if page == pagination.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('complaints.management', page=page) }}">{{ page }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if pagination.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('complaints.management', page=pagination.next_num) }}">Növbəti</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Complaint Details Modal -->
+<div class="modal fade" id="complaintDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Şikayət Detalları</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Complaint details will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Resolve Complaint Modal -->
+<div class="modal fade" id="resolveComplaintModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Şikayəti Həll Et</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="resolveComplaintForm">
+                    <input type="hidden" id="complaintId" name="complaintId">
+                    <div class="mb-3">
+                        <label for="resolution" class="form-label">Həll Yolu</label>
+                        <textarea class="form-control" id="resolution" name="resolution" rows="4" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Həll Et</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Add date formatting function
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('az-AZ', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    }).replace(/\./g, '-');
+}
+
+function viewComplaint(complaintId) {
+    fetch(`/api/complaints/${complaintId}`)
+        .then(response => response.json())
+        .then(data => {
+            const modalBody = document.querySelector('#complaintDetailsModal .modal-body');
+            modalBody.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>ID:</strong> ${data.id}</p>
+                        <p><strong>Tarix:</strong> ${formatDate(data.created_at)}</p>
+                        <p><strong>Əmlak:</strong> ${data.property.title}</p>
+                        <p><strong>İcarədar:</strong> ${data.tenant.name}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Dərəcə:</strong> <span class="badge bg-${data.severity_color}">${data.severity_display}</span></p>
+                        <p><strong>Status:</strong> <span class="badge bg-${data.status_color}">${data.status_display}</span></p>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6>Təsvir:</h6>
+                        <p>${data.description}</p>
+                    </div>
+                </div>
+                ${data.resolution ? `
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6>Həll Yolu:</h6>
+                        <p>${data.resolution}</p>
+                    </div>
+                </div>
+                ` : ''}
+            `;
+            new bootstrap.Modal(document.getElementById('complaintDetailsModal')).show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Xəta baş verdi');
+        });
+}
+
+function resolveComplaint(complaintId) {
+    document.getElementById('complaintId').value = complaintId;
+    new bootstrap.Modal(document.getElementById('resolveComplaintModal')).show();
+}
+
+document.getElementById('resolveComplaintForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const complaintId = document.getElementById('complaintId').value;
+    const resolution = document.getElementById('resolution').value;
+    
+    fetch(`/api/complaints/${complaintId}/resolve`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ resolution })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.message) {
+            alert('Şikayət uğurla həll edildi');
+            location.reload();
+        } else {
+            alert('Xəta baş verdi: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Xəta baş verdi');
+    });
+});
+
+// Filter form submission
+document.getElementById('complaintFilters').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const params = new URLSearchParams(formData);
+    window.location.href = `${window.location.pathname}?${params.toString()}`;
+});
+</script>
+{% endblock %} 

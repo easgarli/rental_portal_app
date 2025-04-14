@@ -1,19 +1,29 @@
 /* Custom styles for the rental portal */
 
 /* Gauge container styles */
-#landlord-rating-container {
+#tenant-score-container, #credit-score-container {
     position: relative;
     padding: 20px;
+    margin: 0 auto;
+    max-width: 300px;
 }
 
-#landlord-rating-gauge {
+#tenant-score-gauge, #credit-score-gauge {
     display: block;
     margin: 0 auto;
+    width: 100%;
+    height: auto;
 }
 
-#landlord-rating {
+#tenant-score-value, #credit-score-value {
     margin-top: 15px;
     text-align: center;
+}
+
+#tenant-score-value h3, #credit-score-value h3 {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #333;
 }
 
 /* Rating item styles */
@@ -34,4 +44,28 @@
 /* Star rating colors */
 .rating-stars {
     color: #ffc107;
+}
+
+/* Score ranges styling */
+.text-muted small {
+    display: block;
+    margin-top: 5px;
+    line-height: 1.4;
+}
+
+/* Card styling for scores */
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: none;
+    border-radius: 8px;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.card-title {
+    color: #333;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
 } 

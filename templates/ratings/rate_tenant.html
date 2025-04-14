@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Kirayəçini qiymətləndir{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Kirayəçini qiymətləndir</h4>
+                </div>
+                <div class="card-body">
+                    <form id="ratingForm">
+                        <div class="mb-4">
+                            <h5>{{ tenant.name }}</h5>
+                            <p class="text-muted">Müqavilə ID: {{ contract_id }}</p>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Ödəniş intizamı (vaxtında və tam ödəmələr)</label>
+                            <div class="rating-input">
+                                {% for i in range(5, 0, -1) %}
+                                <input type="radio" name="reliability" value="{{ i }}" id="reliability{{ i }}" required>
+                                <label for="reliability{{ i }}">★</label>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Əmlaka münasibət (əmlakı qoruyub saxlama səviyyəsi)</label>
+                            <div class="rating-input">
+                                {% for i in range(5, 0, -1) %}
+                                <input type="radio" name="responsibility" value="{{ i }}" id="responsibility{{ i }}" required>
+                                <label for="responsibility{{ i }}">★</label>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Ünsiyyət və əməkdaşlıq (problemləri həll etmək üçün açıq və səmimi ünsiyyət)</label>
+                            <div class="rating-input">
+                                {% for i in range(5, 0, -1) %}
+                                <input type="radio" name="communication" value="{{ i }}" id="communication{{ i }}" required>
+                                <label for="communication{{ i }}">★</label>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Qonşular və binaya münasibət (ətrafdakı insanlara və bina qaydalarına riayət)</label>
+                            <div class="rating-input">
+                                {% for i in range(5, 0, -1) %}
+                                <input type="radio" name="respect" value="{{ i }}" id="respect{{ i }}" required>
+                                <label for="respect{{ i }}">★</label>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Müqavilə şərtlərinə uyğunluq (çıxış müddəti, depozit qaydalarına əməl etmə)</label>
+                            <div class="rating-input">
+                                {% for i in range(5, 0, -1) %}
+                                <input type="radio" name="compliance" value="{{ i }}" id="compliance{{ i }}" required>
+                                <label for="compliance{{ i }}">★</label>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="review" class="form-label">Rəy</label>
+                            <textarea class="form-control" id="review" name="review" rows="3"></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Qiymətləndirməni göndər</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('ratingForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const ratingData = {
+        reliability: formData.get('reliability'),
+        responsibility: formData.get('responsibility'),
+        communication: formData.get('communication'),
+        respect: formData.get('respect'),
+        compliance: formData.get('compliance'),
+        review: formData.get('review')
+    };
+
+    try {
+        const response = await fetch(window.location.href, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify(ratingData)
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('Qiymətləndirmə uğurla göndərildi');
+            window.location.href = "{{ url_for('landlord.contracts') }}";
+        } else {
+            alert(result.error || 'Xəta baş verdi');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Qiymətləndirmə göndərilmədi');
+    }
+});
+</script>
+
+<style>
+.rating-input {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    gap: 5px;
+}
+
+.rating-input input {
+    display: none;
+}
+
+.rating-input label {
+    font-size: 24px;
+    color: #ddd;
+    cursor: pointer;
+}
+
+.rating-input input:checked ~ label,
+.rating-input label:hover,
+.rating-input label:hover ~ label {
+    color: #ffc107;
+}
+
+.rating-input input:checked + label {
+    color: #ffc107;
+}
+</style>
+{% endblock %} 

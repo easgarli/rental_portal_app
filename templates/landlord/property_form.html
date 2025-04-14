@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}{% if property %}Əmlakı Düzəlt{% else %}Yeni Əmlak{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h4>{% if property %}Əmlakı Düzəlt{% else %}Yeni Əmlak{% endif %}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        {{ form.csrf_token }}
+                        <div class="mb-3">
+                            {{ form.title.label(class="form-label") }}
+                            {{ form.title(class="form-control") }}
+                            {% if form.title.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.title.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.description.label(class="form-label") }}
+                            {{ form.description(class="form-control", rows="3") }}
+                            {% if form.description.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.description.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.address.label(class="form-label") }}
+                            {{ form.address(class="form-control") }}
+                            {% if form.address.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.address.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.monthly_rent.label(class="form-label") }}
+                            {{ form.monthly_rent(class="form-control") }}
+                            {% if form.monthly_rent.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.monthly_rent.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.available_from.label(class="form-label") }}
+                            {{ form.available_from(class="form-control", type="date") }}
+                            {% if form.available_from.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.available_from.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.registry_number.label(class="form-label") }}
+                            {{ form.registry_number(class="form-control") }}
+                            {% if form.registry_number.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.registry_number.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.area.label(class="form-label") }}
+                            {{ form.area(class="form-control") }}
+                            {% if form.area.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.area.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.contract_term.label(class="form-label") }}
+                            {{ form.contract_term(class="form-control") }}
+                            {% if form.contract_term.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.contract_term.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <button type="submit" class="btn btn-primary">Yadda saxla</button>
+                        <a href="{{ url_for('landlord.properties') }}" class="btn btn-secondary">Geri qayıt</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -32,38 +32,56 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav">
+                <ul class="navbar-nav me-auto">
                     {% if current_user.is_authenticated %}
-                        {% if current_user.is_admin %}
+                        {% if current_user.role == 'tenant' %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('admin.admin_dashboard') }}">Admin Panel</a>
+                                <a class="nav-link" href="{{ url_for('tenant.dashboard') }}">Ana Səhifə</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('tenant.applications') }}">Müraciətlərim</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('tenant.contracts') }}">Müqavilələrim</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('tenant.ratings') }}">Qiymətləndirmələr</a>
+                            </li>
+                        {% elif current_user.role == 'landlord' %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('landlord.dashboard') }}">Ana Səhifə</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('landlord.properties') }}">Əmlaklarım</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('landlord.applications') }}">Müraciətlər</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('landlord.contracts') }}">Müqavilələr</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('landlord.ratings') }}">Qiymətləndirmələr</a>
                             </li>
                         {% endif %}
                     {% endif %}
                 </ul>
-                
                 <ul class="navbar-nav">
                     {% if current_user.is_authenticated %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                                {{ current_user.name }}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('tenant.profile' if current_user.role == 'tenant' else 'landlord.profile') }}">
+                                <i class="fas fa-user"></i> {{ current_user.name }}
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                {% if current_user.role == 'tenant' %}
-                                    <li><a class="dropdown-item" href="/dashboard">İcarədar Paneli</a></li>
-                                {% elif current_user.role == 'landlord' %}
-                                    <li><a class="dropdown-item" href="/dashboard">Mülk Sahibi Paneli</a></li>
-                                {% endif %}
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="/logout">Çıxış</a></li>
-                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth.logout') }}">Çıxış</a>
                         </li>
                     {% else %}
                         <li class="nav-item">
-                            <a class="nav-link" href="/login">Daxil ol</a>
+                            <a class="nav-link" href="{{ url_for('auth.login') }}">Daxil ol</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="/register">Qeydiyyat</a>
+                            <a class="nav-link" href="{{ url_for('auth.register') }}">Qeydiyyat</a>
                         </li>
                     {% endif %}
                 </ul>

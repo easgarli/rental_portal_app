@@ -1,9 +1,10 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template, flash, redirect, url_for
 from flask_login import login_required, current_user
-from models import db, Rating, User, TenantScore
-from datetime import datetime
+from models import db, Rating, User, TenantScore, RentalApplication, Payment, PropertyDamage, Complaint, ContractViolation
+from datetime import datetime, UTC, timedelta
 from flask_wtf.csrf import CSRFProtect
 from utils.csrf import csrf
+from functools import wraps
 
 ratings_bp = Blueprint('ratings', __name__)
 
@@ -42,86 +43,131 @@ def update_tenant_score(tenant_id):
     
     db.session.commit()
 
-@ratings_bp.route('/rate-tenant', methods=['POST'])
-@login_required
-def rate_tenant():
-    if current_user.role != 'landlord':
-        return jsonify({'error': 'Only landlords can rate tenants'}), 403
-        
-    data = request.get_json()
-    
-    if not all(k in data for k in ['tenant_id', 'property_id', 'reliability', 'responsibility', 
-                                  'communication', 'respect', 'compliance']):
-        return jsonify({'error': 'Missing required fields'}), 400
-        
-    tenant = User.query.get(data['tenant_id'])
-    
-    if not tenant or tenant.role != 'tenant':
-        return jsonify({'error': 'Yanlış icarədar ID'}), 400
-        
-    try:
-        rating = Rating(
-            rater_id=current_user.id,
-            ratee_id=data['tenant_id'],
-            property_id=data['property_id'],
-            reliability=data['reliability'],
-            responsibility=data['responsibility'],
-            communication=data['communication'],
-            respect=data['respect'],
-            compliance=data['compliance'],
-            review=data.get('review', '')
-        )
-        
-        db.session.add(rating)
-        db.session.commit()
-        
-        # Update tenant score
-        update_tenant_score(data['tenant_id'])
-        
-        return jsonify({'message': 'Qiymətləndirmə uğurla əlavə edildi'})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+def tenant_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if current_user.role != 'tenant':
+            flash('Bu əməliyyat üçün icazəniz yoxdur', 'danger')
+            return redirect(url_for('dashboard'))
+        return f(*args, **kwargs)
+    return decorated_function
 
-@ratings_bp.route('/rate-landlord', methods=['POST'])
+def landlord_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if current_user.role != 'landlord':
+            flash('Bu əməliyyat üçün icazəniz yoxdur', 'danger')
+            return redirect(url_for('dashboard'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@ratings_bp.route('/rate/landlord/<landlord_id>/contract/<contract_id>', methods=['GET', 'POST'])
 @login_required
-def rate_landlord():
-    if current_user.role != 'tenant':
-        return jsonify({'error': 'Only tenants can rate landlords'}), 403
+@tenant_required
+def rate_landlord(landlord_id, contract_id):
+    """Rate a landlord"""
+    landlord = User.query.get_or_404(landlord_id)
+    application = RentalApplication.query.get_or_404(contract_id)
     
-    data = request.get_json()
+    if request.method == 'POST':
+        try:
+            data = request.get_json()
+            
+            # Check if a rating already exists for this property
+            existing_rating = Rating.query.filter_by(
+                rater_id=current_user.id,
+                ratee_id=landlord_id,
+                property_id=application.property_id
+            ).first()
+            
+            if existing_rating:
+                # Update existing rating
+                existing_rating.reliability = data.get('reliability', 0)
+                existing_rating.responsibility = data.get('responsibility', 0)
+                existing_rating.communication = data.get('communication', 0)
+                existing_rating.respect = data.get('respect', 0)
+                existing_rating.compliance = data.get('compliance', 0)
+                existing_rating.review = data.get('review', '')
+                existing_rating.created_at = datetime.utcnow()
+            else:
+                # Create new rating
+                rating = Rating(
+                    rater_id=current_user.id,
+                    ratee_id=landlord_id,
+                    application_id=contract_id,
+                    property_id=application.property_id,
+                    reliability=data.get('reliability', 0),
+                    responsibility=data.get('responsibility', 0),
+                    communication=data.get('communication', 0),
+                    respect=data.get('respect', 0),
+                    compliance=data.get('compliance', 0),
+                    review=data.get('review', '')
+                )
+                db.session.add(rating)
+            
+            db.session.commit()
+            return jsonify({'success': True, 'message': 'Qiymətləndirmə uğurla əlavə edildi'})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
     
-    # Validate required fields
-    required_fields = [
-        'landlord_id', 'property_id', 'reliability', 'responsibility',
-        'communication', 'compliance', 'respect'
-    ]
+    return render_template('ratings/rate_landlord.html', 
+                         landlord=landlord,
+                         contract_id=contract_id)
+
+@ratings_bp.route('/rate/tenant/<tenant_id>/contract/<contract_id>', methods=['GET', 'POST'])
+@login_required
+@landlord_required
+def rate_tenant(tenant_id, contract_id):
+    """Rate a tenant"""
+    tenant = User.query.get_or_404(tenant_id)
+    application = RentalApplication.query.get_or_404(contract_id)
     
-    if not all(field in data for field in required_fields):
-        return jsonify({'error': 'Missing required fields'}), 400
+    if request.method == 'POST':
+        try:
+            data = request.get_json()
+            
+            # Check if a rating already exists for this property
+            existing_rating = Rating.query.filter_by(
+                rater_id=current_user.id,
+                ratee_id=tenant_id,
+                property_id=application.property_id
+            ).first()
+            
+            if existing_rating:
+                # Update existing rating
+                existing_rating.reliability = data.get('reliability', 0)
+                existing_rating.responsibility = data.get('responsibility', 0)
+                existing_rating.communication = data.get('communication', 0)
+                existing_rating.respect = data.get('respect', 0)
+                existing_rating.compliance = data.get('compliance', 0)
+                existing_rating.review = data.get('review', '')
+                existing_rating.created_at = datetime.utcnow()
+            else:
+                # Create new rating
+                rating = Rating(
+                    rater_id=current_user.id,
+                    ratee_id=tenant_id,
+                    application_id=contract_id,
+                    property_id=application.property_id,
+                    reliability=data.get('reliability', 0),
+                    responsibility=data.get('responsibility', 0),
+                    communication=data.get('communication', 0),
+                    respect=data.get('respect', 0),
+                    compliance=data.get('compliance', 0),
+                    review=data.get('review', '')
+                )
+                db.session.add(rating)
+            
+            db.session.commit()
+            return jsonify({'success': True, 'message': 'Qiymətləndirmə uğurla əlavə edildi'})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
     
-    try:
-        # Create rating
-        rating = Rating(
-            rater_id=current_user.id,
-            ratee_id=data['landlord_id'],
-            property_id=data['property_id'],
-            reliability=data['reliability'],  # Property accuracy
-            responsibility=data['responsibility'],  # Contract transparency
-            communication=data['communication'],
-            compliance=data['compliance'],  # Maintenance
-            respect=data['respect'],  # Privacy respect
-            review=data.get('review', '')
-        )
-        
-        db.session.add(rating)
-        db.session.commit()
-        
-        return jsonify({'message': 'Rating submitted successfully'})
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+    return render_template('ratings/rate_tenant.html', 
+                         tenant=tenant,
+                         contract_id=contract_id)
 
 @ratings_bp.route('/ratings/<user_id>', methods=['GET'])
 @login_required
@@ -203,4 +249,109 @@ def get_given_ratings(user_id):
         'compliance': rating.compliance,
         'review': rating.review,
         'created_at': rating.created_at.isoformat()
-    } for rating in ratings]) 
+    } for rating in ratings])
+
+@ratings_bp.route('/api/tenant-score/<tenant_id>', methods=['GET'])
+@login_required
+def get_tenant_score(tenant_id):
+    """Get tenant's current score and history"""
+    tenant_score = TenantScore.query.filter_by(tenant_id=tenant_id).first()
+    if not tenant_score:
+        return jsonify({'error': 'Tenant score not found'}), 404
+        
+    return jsonify({
+        'total_score': tenant_score.total_score,
+        'component_scores': {
+            'payment': tenant_score.payment_score,
+            'property': tenant_score.property_score,
+            'rental_history': tenant_score.rental_history_score,
+            'neighbor': tenant_score.neighbor_score,
+            'contract': tenant_score.contract_score
+        },
+        'payment_history': tenant_score.payment_history,
+        'property_history': tenant_score.property_history,
+        'rental_history': tenant_score.rental_history,
+        'neighbor_history': tenant_score.neighbor_history,
+        'contract_history': tenant_score.contract_history,
+        'last_updated': tenant_score.updated_at.isoformat()
+    })
+
+@ratings_bp.route('/api/tenant-score/<tenant_id>/history', methods=['GET'])
+@login_required
+def get_tenant_score_history(tenant_id):
+    """Get tenant's score history over time"""
+    # Get score changes in the last year
+    start_date = datetime.utcnow() - timedelta(days=365)
+    payments = Payment.query.filter(
+        Payment.tenant_id == tenant_id,
+        Payment.created_at >= start_date
+    ).order_by(Payment.created_at).all()
+    
+    damages = PropertyDamage.query.filter(
+        PropertyDamage.tenant_id == tenant_id,
+        PropertyDamage.created_at >= start_date
+    ).order_by(PropertyDamage.created_at).all()
+    
+    complaints = Complaint.query.filter(
+        Complaint.tenant_id == tenant_id,
+        Complaint.created_at >= start_date
+    ).order_by(Complaint.created_at).all()
+    
+    violations = ContractViolation.query.filter(
+        ContractViolation.tenant_id == tenant_id,
+        ContractViolation.created_at >= start_date
+    ).order_by(ContractViolation.created_at).all()
+    
+    return jsonify({
+        'payment_history': [p.to_dict() for p in payments],
+        'property_history': [d.to_dict() for d in damages],
+        'complaint_history': [c.to_dict() for c in complaints],
+        'violation_history': [v.to_dict() for v in violations]
+    })
+
+@ratings_bp.route('/api/tenant-score/<tenant_id>/predict', methods=['GET'])
+@login_required
+def predict_tenant_score(tenant_id):
+    """Predict tenant's future score based on current trends"""
+    tenant_score = TenantScore.query.filter_by(tenant_id=tenant_id).first()
+    if not tenant_score:
+        return jsonify({'error': 'Tenant score not found'}), 404
+        
+    # Analyze trends in each component
+    trends = {
+        'payment': analyze_payment_trend(tenant_id),
+        'property': analyze_property_trend(tenant_id),
+        'rental': analyze_rental_trend(tenant_id),
+        'neighbor': analyze_neighbor_trend(tenant_id),
+        'contract': analyze_contract_trend(tenant_id)
+    }
+    
+    # Calculate predicted scores
+    predicted_scores = {
+        'payment': predict_component_score(tenant_score.payment_score, trends['payment']),
+        'property': predict_component_score(tenant_score.property_score, trends['property']),
+        'rental': predict_component_score(tenant_score.rental_history_score, trends['rental']),
+        'neighbor': predict_component_score(tenant_score.neighbor_score, trends['neighbor']),
+        'contract': predict_component_score(tenant_score.contract_score, trends['contract'])
+    }
+    
+    # Calculate predicted total score
+    weights = {
+        'payment': 0.30,
+        'property': 0.25,
+        'rental': 0.20,
+        'neighbor': 0.15,
+        'contract': 0.10
+    }
+    
+    predicted_total = sum(
+        score * weights[component]
+        for component, score in predicted_scores.items()
+    )
+    
+    return jsonify({
+        'current_score': tenant_score.total_score,
+        'predicted_score': predicted_total,
+        'component_predictions': predicted_scores,
+        'trends': trends
+    }) 
