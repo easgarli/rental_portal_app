@@ -126,6 +126,10 @@ def contracts():
             property.contract_term
         ])
         
+        # Check if tenant info is complete
+        tenant_info = UserContractInfo.query.filter_by(user_id=app.tenant_id).first()
+        tenant_info_complete = bool(tenant_info)
+        
         contracts.append({
             'id': app.id,
             'property': {
@@ -141,6 +145,7 @@ def contracts():
             'status': app.contract_status or 'draft',
             'landlord_info_complete': bool(landlord_info),
             'property_info_complete': property_info_complete,
+            'tenant_info_complete': tenant_info_complete,
             'landlord_signature': bool(app.landlord_signature),
             'tenant_signature': bool(app.tenant_signature),
             'created_at': app.created_at

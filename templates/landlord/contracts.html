@@ -69,14 +69,27 @@
                                                 </div>
                                             </div>
 
-                                            <!-- Step 3: Generate Contract -->
-                                            <div class="step {% if contract.status == 'pending_signatures' %}completed{% else %}pending{% endif %}">
+                                            <!-- Step 3: Tenant Info -->
+                                            <div class="step {% if contract.tenant_info_complete %}completed{% else %}pending{% endif %}">
                                                 <div class="step-number">3</div>
+                                                <div class="step-content">
+                                                    <h6>Kirayəçinin Məlumatları</h6>
+                                                    {% if contract.tenant_info_complete %}
+                                                        <span class="text-success"><i class="fas fa-check-circle"></i> Tamamlandı</span>
+                                                    {% else %}
+                                                        <span class="text-muted">Kirayəçi məlumatları gözlənilir</span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+
+                                            <!-- Step 4: Generate Contract -->
+                                            <div class="step {% if contract.status == 'pending_signatures' %}completed{% else %}pending{% endif %}">
+                                                <div class="step-number">4</div>
                                                 <div class="step-content">
                                                     <h6>Müqavilə Hazırlanması</h6>
                                                     {% if contract.status == 'pending_signatures' %}
                                                         <span class="text-success"><i class="fas fa-check-circle"></i> Hazırdır</span>
-                                                    {% elif contract.landlord_info_complete and contract.property_info_complete %}
+                                                    {% elif contract.landlord_info_complete and contract.property_info_complete and contract.tenant_info_complete %}
                                                         <a href="{{ url_for('applications.generate_contract', application_id=contract.id) }}" class="btn btn-sm btn-success">
                                                             <i class="fas fa-file-contract"></i> Müqaviləni hazırla
                                                         </a>
@@ -86,9 +99,9 @@
                                                 </div>
                                             </div>
 
-                                            <!-- Step 4: Signatures -->
+                                            <!-- Step 5: Signatures -->
                                             <div class="step {% if contract.status == 'active' %}completed{% else %}pending{% endif %}">
-                                                <div class="step-number">4</div>
+                                                <div class="step-number">5</div>
                                                 <div class="step-content">
                                                     <h6>İmzalar</h6>
                                                     {% if contract.status == 'active' %}
@@ -106,7 +119,6 @@
                                                                 <span class="text-warning">Gözləyir</span>
                                                             {% endif %}</p>
                                                         </div>
-                                                    {% else %}
                                                         <span class="text-muted">Müqavilə hazırlanmalıdır</span>
                                                     {% endif %}
                                                 </div>
