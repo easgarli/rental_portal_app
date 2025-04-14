@@ -335,55 +335,97 @@ def manage_tenant_info(application_id):
 @applications_bp.route('/applications/<application_id>/landlord-info', methods=['GET', 'POST'])
 @login_required
 def manage_landlord_info(application_id):
-    application = RentalApplication.query.get_or_404(application_id)
-    
-    # Get the first (and should be only) contract info for the landlord
-    contract_info = UserContractInfo.query.filter_by(
-        user_id=application.rental_property.landlord_id
-    ).first()
-    
-    if request.method == 'GET':
+    try:
+        # Get application with proper error handling
+        application = RentalApplication.query.get_or_404(application_id)
+        
+        # Verify the property exists
+        if not application.rental_property:
+            current_app.logger.error(f"Property not found for application {application_id}")
+            flash('Əmlak tapılmadı', 'danger')
+            return redirect(url_for('dashboard'))
+            
+        # Get the landlord's contract info
+        contract_info = UserContractInfo.query.filter_by(
+            user_id=application.rental_property.landlord_id
+        ).first()
+        
+        form = LandlordInfoForm()
+        
+        if request.method == 'GET':
+            # Pre-populate form if contract info exists
+            if contract_info:
+                form.first_name.data = contract_info.first_name
+                form.last_name.data = contract_info.last_name
+                form.father_name.data = contract_info.father_name
+                form.id_number.data = contract_info.id_number
+                form.fin.data = contract_info.fin
+                form.birth_place.data = contract_info.birth_place
+                form.birth_date.data = contract_info.birth_date
+                form.address.data = contract_info.address
+            
+            return render_template(
+                'applications/landlord_info.html',
+                application=application,
+                contract_info=contract_info,
+                form=form
+            )
+        
+        # Handle POST request
+        if form.validate():
+            try:
+                if not contract_info:
+                    contract_info = UserContractInfo(
+                        user_id=application.rental_property.landlord_id,
+                        first_name=form.first_name.data,
+                        last_name=form.last_name.data,
+                        father_name=form.father_name.data,
+                        id_number=form.id_number.data,
+                        fin=form.fin.data,
+                        birth_place=form.birth_place.data,
+                        birth_date=form.birth_date.data,
+                        address=form.address.data
+                    )
+                    db.session.add(contract_info)
+                else:
+                    # Update existing contract info
+                    contract_info.first_name = form.first_name.data
+                    contract_info.last_name = form.last_name.data
+                    contract_info.father_name = form.father_name.data
+                    contract_info.id_number = form.id_number.data
+                    contract_info.fin = form.fin.data
+                    contract_info.birth_place = form.birth_place.data
+                    contract_info.birth_date = form.birth_date.data
+                    contract_info.address = form.address.data
+                
+                db.session.commit()
+                flash('Məlumatlar uğurla yeniləndi', 'success')
+                return redirect(url_for('applications.manage_contract', application_id=application_id))
+                
+            except Exception as e:
+                db.session.rollback()
+                current_app.logger.error(f"Error saving landlord info: {str(e)}")
+                flash('Məlumatları yadda saxlamaq mümkün olmadı', 'danger')
+                return render_template(
+                    'applications/landlord_info.html',
+                    application=application,
+                    contract_info=contract_info,
+                    form=form
+                )
+        
+        # If form validation failed
+        current_app.logger.warning(f"Form validation failed: {form.errors}")
         return render_template(
             'applications/landlord_info.html',
             application=application,
-            contract_info=contract_info
+            contract_info=contract_info,
+            form=form
         )
-    
-    # Handle POST request...
-    try:
-        if not contract_info:
-            contract_info = UserContractInfo(
-                user_id=application.rental_property.landlord_id,
-                first_name=request.form['first_name'],
-                last_name=request.form['last_name'],
-                father_name=request.form['father_name'],
-                id_number=request.form['id_number'],
-                fin=request.form['fin'],
-                birth_place=request.form['birth_place'],
-                birth_date=datetime.strptime(request.form['birth_date'], '%Y-%m-%d').date(),
-                address=request.form['address']
-            )
-            db.session.add(contract_info)
-        else:
-            # Update existing contract info
-            contract_info.first_name = request.form['first_name']
-            contract_info.last_name = request.form['last_name']
-            contract_info.father_name = request.form['father_name']
-            contract_info.id_number = request.form['id_number']
-            contract_info.fin = request.form['fin']
-            contract_info.birth_place = request.form['birth_place']
-            contract_info.birth_date = datetime.strptime(request.form['birth_date'], '%Y-%m-%d').date()
-            contract_info.address = request.form['address']
-        
-        db.session.commit()
-        flash('Məlumatlar uğurla yeniləndi', 'success')
-        return redirect(url_for('applications.view_application', application_id=application_id))
         
     except Exception as e:
-        db.session.rollback()
+        current_app.logger.error(f"Error in manage_landlord_info: {str(e)}")
         flash('Xəta baş verdi', 'danger')
-        current_app.logger.error(f"Error updating landlord contract info: {str(e)}")
-        return redirect(url_for('applications.manage_landlord_info', application_id=application_id))
+        return redirect(url_for('dashboard'))
 
 @applications_bp.route('/applications/<application_id>/reject', methods=['POST'])
 @login_required
