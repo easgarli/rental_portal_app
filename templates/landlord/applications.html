@@ -48,8 +48,14 @@ async function loadApplications() {
                         <div class="d-flex gap-2">
                             <a href="/applications/${app.id}" class="btn btn-primary">Müraciəti gör</a>
                             ${app.status === 'pending' ? `
-                                <a href="/applications/${app.id}/accept" class="btn btn-success">Qəbul et</a>
-                                <a href="/applications/${app.id}/reject" class="btn btn-danger">Rədd et</a>
+                                <form id="approve-form-${app.id}" action="/applications/${app.id}/approve" method="POST" style="display: inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-success">Təsdiq et</button>
+                                </form>
+                                <form id="reject-form-${app.id}" action="/applications/${app.id}/reject" method="POST" style="display: inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-danger">Rədd et</button>
+                                </form>
                             ` : ''}
                             ${app.status === 'accepted' ? `
                                 ${app.contract_status === 'draft' ? `
@@ -121,5 +127,38 @@ function formatDate(dateString) {
 
 // Load applications when page loads
 document.addEventListener('DOMContentLoaded', loadApplications);
+
+// Add form submission handlers
+document.addEventListener('submit', async (e) => {
+    if (e.target.matches('form[action*="/approve"], form[action*="/reject"]')) {
+        e.preventDefault();
+        
+        const form = e.target;
+        const formData = new FormData(form);
+        
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': formData.get('csrf_token')
+                },
+                body: formData
+            });
+            
+            if (!response.ok) throw new Error('Server error');
+            
+            const result = await response.json();
+            if (result.success) {
+                alert(result.message);
+                loadApplications(); // Refresh the applications list
+            } else {
+                alert(result.message || 'Xəta baş verdi');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Əməliyyat uğursuz oldu');
+        }
+    }
+});
 </script>
 {% endblock %} 

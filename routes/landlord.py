@@ -103,10 +103,14 @@ def contracts():
     properties = Property.query.filter_by(landlord_id=current_user.id).all()
     property_ids = [p.id for p in properties]
     
-    # Get all applications for these properties
+    # Get all applications for these properties that are approved
     applications = RentalApplication.query.filter(
-        RentalApplication.property_id.in_(property_ids)
+        RentalApplication.property_id.in_(property_ids),
+        RentalApplication.status == 'approved'
     ).all()
+    
+    # Filter applications to only include those with contract_status
+    applications = [app for app in applications if app.contract_status is not None]
     
     # Get landlord's contract info
     landlord_info = UserContractInfo.query.filter_by(user_id=current_user.id).first()

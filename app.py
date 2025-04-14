@@ -165,7 +165,7 @@ def create_app():
             elif current_user.role == 'landlord':
                 return redirect(url_for('landlord.dashboard'))
             else:
-                return redirect(url_for('admin.dashboard'))
+                return redirect(url_for('admin.admin_dashboard'))
         except Exception as e:
             app.logger.error(f"Dashboard error: {str(e)}")
             return render_template('error.html', error="Dashboard yüklənərkən xəta baş verdi")
@@ -186,7 +186,7 @@ def create_app():
                 elif user.role == 'landlord':
                     return redirect(url_for('landlord.dashboard'))
                 else:
-                    return redirect(url_for('admin.dashboard'))
+                    return redirect(url_for('admin.admin_dashboard'))
 
     return app
 
