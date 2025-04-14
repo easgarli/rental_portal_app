@@ -123,9 +123,8 @@ def approve_application(application_id):
     
     try:
         application.status = 'approved'
-        # Set contract status based on whether tenant info exists
-        tenant_info = UserContractInfo.query.filter_by(user_id=application.tenant_id).first()
-        application.contract_status = 'draft' if tenant_info else 'none'
+        # Always set contract status to 'draft' when approving
+        application.contract_status = 'draft'
         db.session.commit()
         
         return jsonify({
