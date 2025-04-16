@@ -3,11 +3,11 @@ class TenantScore {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
         this.components = {
-            payment: { weight: 0.30, score: 0 },
-            property: { weight: 0.25, score: 0 },
-            rental: { weight: 0.20, score: 0 },
-            compliance: { weight: 0.15, score: 0 },
-            contract: { weight: 0.10, score: 0 }
+            payment: { weight: 0.30, score: 0, label: 'Ödəniş intizamı' },
+            property: { weight: 0.25, score: 0, label: 'Əmlaka münasibət' },
+            neighbor: { weight: 0.15, score: 0, label: 'Qonşularla və bina qaydalarına uyğunluq' },
+            communication: { weight: 0.20, score: 0, label: 'Ünsiyyət və əməkdaşlıq' },
+            contract: { weight: 0.10, score: 0, label: 'Müqavilə şərtlərinə uyğunluq' }
         };
         this.totalScore = 0;
         this.history = [];
@@ -34,8 +34,8 @@ class TenantScore {
     updateScores(data) {
         this.components.payment.score = data.payment_score;
         this.components.property.score = data.property_score;
-        this.components.rental.score = data.rental_score;
-        this.components.compliance.score = data.compliance_score;
+        this.components.neighbor.score = data.neighbor_score;
+        this.components.communication.score = data.communication_score;
         this.components.contract.score = data.contract_score;
         this.totalScore = data.total_score;
         this.history = data.history || [];
@@ -57,18 +57,41 @@ class TenantScore {
     }
 
     renderComponentScores() {
-        Object.entries(this.components).forEach(([key, component]) => {
-            const element = document.getElementById(`${key}-score`);
-            if (element) {
-                element.textContent = component.score.toFixed(1);
-                element.className = `badge ${this.getScoreColorClass(component.score)}`;
-            }
+        const container = document.getElementById('component-scores');
+        if (!container) return;
 
-            const progressBar = document.getElementById(`${key}-progress`);
-            if (progressBar) {
-                progressBar.style.width = `${component.score}%`;
-                progressBar.className = `progress-bar ${this.getScoreColorClass(component.score)}`;
-            }
+        container.innerHTML = '';
+        
+        Object.entries(this.components).forEach(([key, component]) => {
+            const score = component.score;
+            const weight = component.weight * 100;
+            const label = component.label;
+            
+            const componentDiv = document.createElement('div');
+            componentDiv.className = 'mb-3';
+            
+            const labelDiv = document.createElement('div');
+            labelDiv.className = 'd-flex justify-content-between mb-1';
+            labelDiv.innerHTML = `
+                <span>${label}</span>
+                <span>${score.toFixed(1)} (${weight}%)</span>
+            `;
+            
+            const progressDiv = document.createElement('div');
+            progressDiv.className = 'progress';
+            progressDiv.innerHTML = `
+                <div class="progress-bar ${this.getScoreColorClass(score)}" 
+                     role="progressbar" 
+                     style="width: ${score}%" 
+                     aria-valuenow="${score}" 
+                     aria-valuemin="0" 
+                     aria-valuemax="100">
+                </div>
+            `;
+            
+            componentDiv.appendChild(labelDiv);
+            componentDiv.appendChild(progressDiv);
+            container.appendChild(componentDiv);
         });
     }
 
@@ -120,26 +143,25 @@ class TenantScore {
     getScoreInterpretation(score) {
         if (score >= 90) {
             return {
-                text: 'Çox etibarlı icarədar (Very Reliable Tenant)',
+                text: 'Əla: İcarəçi yüksək etibarlılıq göstərir',
                 class: 'alert-success'
             };
-        }
-        if (score >= 75) {
+        } else if (score >= 75) {
             return {
-                text: 'Yaxşı icarədar (Good Tenant)',
+                text: 'Yaxşı: İcarəçi etibarlı hesab olunur',
                 class: 'alert-primary'
             };
-        }
-        if (score >= 50) {
+        } else if (score >= 50) {
             return {
-                text: 'Orta riskli icarədar (Medium Risk Tenant)',
+                text: 'Orta: İcarəçi ilə əməkdaşlıq mümkündür',
                 class: 'alert-warning'
             };
+        } else {
+            return {
+                text: 'Zəif: İcarəçi ilə əməkdaşlıq risklidir',
+                class: 'alert-danger'
+            };
         }
-        return {
-            text: 'Yüksək riskli icarədar (High Risk Tenant)',
-            class: 'alert-danger'
-        };
     }
 
     setupEventListeners() {
@@ -161,7 +183,7 @@ class TenantScore {
     }
 
     handleComplaintUpdate(complaintData) {
-        this.components.compliance.score = this.calculateComplianceScore(complaintData);
+        this.components.neighbor.score = this.calculateNeighborScore(complaintData);
         this.updateTotalScore();
         this.render();
     }
@@ -180,8 +202,8 @@ class TenantScore {
         return Math.max(0, Math.min(100, baseScore - deductions + bonuses));
     }
 
-    calculateComplianceScore(complaintData) {
-        // Implementation based on complaint history
+    calculateNeighborScore(complaintData) {
+        // Implementation based on neighbor feedback
         let baseScore = 100;
         const deductions = complaintData.seriousComplaints * 25;
         const bonuses = complaintData.resolvedComplaints * 10;
