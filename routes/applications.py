@@ -583,9 +583,39 @@ def view_application(application_id):
 @login_required
 def generate_contract(application_id):
     """Generate contract document for an application"""
-    application = RentalApplication.query.get_or_404(application_id)
-    
     try:
+        # Get application with all required relationships loaded
+        application = RentalApplication.query.options(
+            db.joinedload(RentalApplication.tenant).joinedload(User.contract_info),
+            db.joinedload(RentalApplication.rental_property).joinedload(Property.landlord).joinedload(User.contract_info)
+        ).get_or_404(application_id)
+        
+        # Check permissions
+        if (current_user.role == 'tenant' and application.tenant_id != current_user.id) or \
+           (current_user.role == 'landlord' and application.rental_property.landlord_id != current_user.id):
+            flash('Bu əməliyyat üçün icazəniz yoxdur', 'danger')
+            return redirect(url_for('dashboard'))
+        
+        # Check if all required information is present
+        if not application.tenant.contract_info:
+            flash('İcarəçi məlumatları tamamlanmayıb', 'danger')
+            return redirect(url_for('applications.manage_tenant_info', application_id=application_id))
+            
+        if not application.rental_property.landlord.contract_info:
+            flash('Mülk sahibi məlumatları tamamlanmayıb', 'danger')
+            return redirect(url_for('applications.manage_landlord_info', application_id=application_id))
+            
+        # Check if property info is complete
+        property_info = {
+            'registry_number': application.rental_property.registry_number,
+            'area': application.rental_property.area,
+            'contract_term': application.rental_property.contract_term
+        }
+        missing_property_info = [k for k, v in property_info.items() if not v]
+        if missing_property_info:
+            flash('Əmlak məlumatları tamamlanmayıb', 'danger')
+            return redirect(url_for('applications.manage_property_info', application_id=application_id))
+        
         # Generate contract using the utility function
         filename = utils.contract.generate_contract(application)
         
@@ -645,19 +675,20 @@ def sign_contract(application_id):
             return jsonify({'error': 'Əmlak məlumatları tamamlanmayıb'}), 400
         
         # Add signature
+        current_time = datetime.now(UTC)
         if current_user.role == 'tenant':
             if application.tenant_signature:
                 current_app.logger.warning(f"Tenant already signed contract {application_id}")
                 return jsonify({'error': 'Müqavilə artıq imzalanıb'}), 400
-            application.tenant_signature = datetime.now(UTC)
-            application.contract_status = 'pending_signatures'  # Ensure status is set
+            application.tenant_signature = current_time
+            application.tenant_signature_date = current_time
             current_app.logger.info(f"Tenant signed contract {application_id}")
         else:  # landlord
             if application.landlord_signature:
                 current_app.logger.warning(f"Landlord already signed contract {application_id}")
                 return jsonify({'error': 'Müqavilə artıq imzalanıb'}), 400
-            application.landlord_signature = datetime.now(UTC)
-            application.contract_status = 'pending_signatures'  # Ensure status is set
+            application.landlord_signature = current_time
+            application.landlord_signature_date = current_time
             current_app.logger.info(f"Landlord signed contract {application_id}")
         
         # If both parties have signed, activate the contract
@@ -665,6 +696,8 @@ def sign_contract(application_id):
             application.contract_status = 'active'
             application.rental_property.status = 'rented'
             current_app.logger.info(f"Contract {application_id} activated")
+        else:
+            application.contract_status = 'pending_signatures'
         
         try:
             db.session.commit()

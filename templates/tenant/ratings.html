@@ -1,6 +1,83 @@
 {% extends "base.html" %}
 
-{% block title %}Reytinqlər{% endblock %}
+{% block title %}Qiymətləndirmələrim{% endblock %}
+
+{% block head %}
+<style>
+    .score-gauge {
+        width: 400px;
+        height: 400px;
+        margin: 0 auto;
+    }
+    
+    .score-category {
+        text-align: center;
+        font-size: 1.4rem;
+        margin-top: 1.5rem;
+    }
+    
+    .score-category.high {
+        color: #28a745;
+    }
+    
+    .score-category.good {
+        color: #17a2b8;
+    }
+    
+    .score-category.medium {
+        color: #ffc107;
+    }
+    
+    .score-category.low {
+        color: #dc3545;
+    }
+    
+    .rating-item {
+        margin-bottom: 1rem;
+    }
+    
+    .rating-item label {
+        display: block;
+        margin-bottom: 0.25rem;
+        font-weight: 500;
+        color: #495057;
+    }
+    
+    .progress {
+        height: 1.5rem;
+        border-radius: 0.5rem;
+        background-color: #e9ecef;
+    }
+    
+    .progress-bar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+    
+    .review-box {
+        border-left: 4px solid #6c757d;
+        background-color: #f8f9fa;
+    }
+    
+    .card {
+        border: none;
+        transition: transform 0.2s;
+    }
+    
+    .card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .card-header {
+        border-bottom: 1px solid rgba(0,0,0,.125);
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -16,14 +93,14 @@
                 <div class="card-body">
                     <h5 class="card-title">TenantScore Balınız</h5>
                     <div id="tenant-score-container" class="text-center">
-                        <canvas id="tenant-score-gauge" width="200" height="200"></canvas>
-                        <div id="tenant-score-value" class="text-center mt-3">
-                            {% if tenant_score %}
-                                <h3>{{ tenant_score.total_score }}</h3>
-                            {% else %}
-                                <p class="text-muted">Skor hesablanmayıb</p>
-                            {% endif %}
-                        </div>
+                        {% if tenant_score %}
+                            <div id="tenant-score-gauge" class="score-gauge"></div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <p class="mb-0">Hələ Tenant Score hesablanmayıb.</p>
+                                <p class="mb-0">Qiymətləndirmələr aldıqdan sonra skorunuz hesablanacaq.</p>
+                            </div>
+                        {% endif %}
                     </div>
                     <div class="mt-3">
                         <small class="text-muted">
@@ -42,11 +119,8 @@
                     <h5 class="card-title">Kredit Skorunuz</h5>
                     <div id="credit-score-container" class="text-center">
                         {% if latest_questionnaire %}
-                            <canvas id="credit-score-gauge" width="200" height="200"></canvas>
-                        <div id="credit-score-value" class="text-center mt-3">
-                                <h3>{{ latest_questionnaire.credit_score }}</h3>
-                            </div>
-                            {% else %}
+                            <div id="credit-score-gauge" class="score-gauge"></div>
+                        {% else %}
                             <div class="alert alert-info">
                                 <h4 class="alert-heading">Kredit Skorunuz Hesablanmayıb</h4>
                                 <p>Kredit skorunuzu hesablamaq üçün anketi doldurun və daha yaxşı şərtlərlə mənzil kirayəyə götürün.</p>
@@ -57,8 +131,8 @@
                                     </a>
                                 </p>
                             </div>
-                            {% endif %}
-                        </div>
+                        {% endif %}
+                    </div>
                     <div class="mt-3">
                         <small class="text-muted">
                             850-1000: Əla kredit skoru<br>
@@ -103,75 +177,195 @@
     </div>
 </div>
 
-<script src="https://bernii.github.io/gauge.js/dist/gauge.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize gauges
-    const tenantScoreGauge = new Gauge(document.getElementById('tenant-score-gauge'));
-    const creditScoreGauge = new Gauge(document.getElementById('credit-score-gauge'));
+    console.log('DOM loaded, initializing gauges...');
     
     // Function to get color based on score
     function getColorForScore(score, maxScore) {
         const percentage = (score / maxScore) * 100;
-        if (percentage >= 90) return '#00FF00'; // Green for excellent
-        if (percentage >= 75) return '#90EE90'; // Light green for good
-        if (percentage >= 50) return '#FFA500'; // Orange for average
-        return '#FF0000'; // Red for poor
+        if (percentage >= 90) return '#28a745'; // Green for excellent
+        if (percentage >= 75) return '#17a2b8'; // Light blue for good
+        if (percentage >= 50) return '#ffc107'; // Yellow for average
+        return '#dc3545'; // Red for poor
     }
     
-    // Configure gauges
-    const gaugeOptions = {
-        angle: 0.15,
-        lineWidth: 0.44,
-        radiusScale: 1,
-        pointer: {
-            length: 0.6,
-            strokeWidth: 0.035,
-            color: '#000000'
-        },
-        limitMax: false,
-        limitMin: false,
-        strokeColor: '#E0E0E0',
-        generateGradient: true,
-        highDpiSupport: true,
-        staticZones: [
-            {strokeStyle: "#FF0000", min: 0, max: 49},    // Poor (Red)
-            {strokeStyle: "#FFA500", min: 50, max: 74},   // Average (Orange)
-            {strokeStyle: "#90EE90", min: 75, max: 89},   // Good (Light Green)
-            {strokeStyle: "#00FF00", min: 90, max: 100}   // Excellent (Green)
-        ]
-    };
+    // Initialize tenant score gauge if element exists
+    const tenantScoreGaugeEl = document.getElementById('tenant-score-gauge');
+    console.log('Tenant score gauge element:', tenantScoreGaugeEl);
     
-    // Configure credit score gauge with different ranges
-    const creditScoreOptions = {
-        ...gaugeOptions,
-        staticZones: [
-            {strokeStyle: "#FF0000", min: 0, max: 599},   // Poor (Red)
-            {strokeStyle: "#FFA500", min: 600, max: 699}, // Average (Orange)
-            {strokeStyle: "#90EE90", min: 700, max: 849}, // Good (Light Green)
-            {strokeStyle: "#00FF00", min: 850, max: 1000} // Excellent (Green)
-        ]
-    };
+    if (tenantScoreGaugeEl) {
+        console.log('Initializing tenant score gauge...');
+        const tenantScoreGauge = echarts.init(tenantScoreGaugeEl);
+        {% if tenant_score %}
+            const tenantScore = {{ tenant_score.total_score }};
+            console.log('Tenant score value:', tenantScore);
+            
+            const tenantScoreOption = {
+                series: [{
+                    type: 'gauge',
+                    startAngle: 180,
+                    endAngle: 0,
+                    min: 0,
+                    max: 100,
+                    splitNumber: 10,
+                    radius: '100%',
+                    axisLine: {
+                        lineStyle: {
+                            width: 60,
+                            color: [
+                                [0.49, '#dc3545'],
+                                [0.74, '#ffc107'],
+                                [0.89, '#17a2b8'],
+                                [1, '#28a745']
+                            ]
+                        }
+                    },
+                    pointer: {
+                        icon: 'path://M12.8,0.7l12,40.1H0.7L12.8,0.7z',
+                        length: '12%',
+                        width: 40,
+                        offsetCenter: [0, '-60%'],
+                        itemStyle: {
+                            color: 'auto'
+                        }
+                    },
+                    axisTick: {
+                        length: 24,
+                        lineStyle: {
+                            color: 'auto',
+                            width: 2
+                        }
+                    },
+                    splitLine: {
+                        length: 40,
+                        lineStyle: {
+                            color: 'auto',
+                            width: 4
+                        }
+                    },
+
+                    title: {
+                        offsetCenter: [0, '-20%'],
+                        fontSize: 40
+                    },
+                    detail: {
+                        fontSize: 60,
+                        offsetCenter: [0, '0%'],
+                        valueAnimation: true,
+                        formatter: function(value) {
+                            return value;
+                        },
+                        color: 'auto'
+                    },
+                    data: [{
+                        value: tenantScore
+                    }]
+                }]
+            };
+            
+            try {
+                tenantScoreGauge.setOption(tenantScoreOption);
+                console.log('Tenant score gauge initialized successfully');
+                
+                const scoreValueEl = document.getElementById('tenant-score-value');
+                if (scoreValueEl) {
+                    scoreValueEl.style.color = getColorForScore(tenantScore, 100);
+                }
+                
+                // Handle window resize
+                window.addEventListener('resize', function() {
+                    tenantScoreGauge.resize();
+                });
+            } catch (error) {
+                console.error('Error initializing tenant score gauge:', error);
+            }
+        {% else %}
+            console.log('No tenant score data available');
+        {% endif %}
+    } else {
+        console.log('Tenant score gauge element not found in DOM');
+    }
     
-    tenantScoreGauge.setOptions(gaugeOptions);
-    creditScoreGauge.setOptions(creditScoreOptions);
-    
-    // Set max values
-    tenantScoreGauge.maxValue = 100;
-    creditScoreGauge.maxValue = 1000;
-    
-    // Set initial values with dynamic colors
-    {% if tenant_score %}
-        const tenantScore = {{ tenant_score.total_score }};
-        tenantScoreGauge.set(tenantScore);
-        document.getElementById('tenant-score-value').style.color = getColorForScore(tenantScore, 100);
-    {% endif %}
-    
-    {% if latest_questionnaire %}
-        const creditScore = {{ latest_questionnaire.credit_score }};
-        creditScoreGauge.set(creditScore);
-        document.getElementById('credit-score-value').style.color = getColorForScore(creditScore, 1000);
-    {% endif %}
+    // Initialize credit score gauge if element exists
+    const creditScoreGaugeEl = document.getElementById('credit-score-gauge');
+    if (creditScoreGaugeEl) {
+        console.log('Initializing credit score gauge...');
+        const creditScoreGauge = echarts.init(creditScoreGaugeEl);
+        {% if latest_questionnaire %}
+            const creditScore = {{ latest_questionnaire.credit_score }};
+            
+            const creditScoreOption = {
+                series: [{
+                    type: 'gauge',
+                    startAngle: 180,
+                    endAngle: 0,
+                    min: 0,
+                    max: 1000,
+                    splitNumber: 10,
+                    radius: '100%',
+                    axisLine: {
+                        lineStyle: {
+                            width: 60,
+                            color: [
+                                [0.599, '#dc3545'],
+                                [0.699, '#ffc107'],
+                                [0.849, '#17a2b8'],
+                                [1, '#28a745']
+                            ]
+                        }
+                    },
+                    pointer: {
+                        icon: 'path://M12.8,0.7l12,40.1H0.7L12.8,0.7z',
+                        length: '12%',
+                        width: 40,
+                        offsetCenter: [0, '-60%'],
+                        itemStyle: {
+                            color: 'auto'
+                        }
+                    },
+                    axisTick: {
+                        length: 24,
+                        lineStyle: {
+                            color: 'auto',
+                            width: 2
+                        }
+                    },
+                    splitLine: {
+                        length: 40,
+                        lineStyle: {
+                            color: 'auto',
+                            width: 4
+                        }
+                    },
+                    title: {
+                        offsetCenter: [0, '-20%'],
+                        fontSize: 40
+                    },
+                    detail: {
+                        fontSize: 60,
+                        offsetCenter: [0, '0%'],
+                        valueAnimation: true,
+                        formatter: function(value) {
+                            return value;
+                        },
+                        color: 'auto'
+                    },
+                    data: [{
+                        value: creditScore
+                    }]
+                }]
+            };
+            
+            creditScoreGauge.setOption(creditScoreOption);
+            
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                creditScoreGauge.resize();
+            });
+        {% endif %}
+    }
     
     // Load initial ratings
     loadReceivedRatings();
@@ -406,48 +600,5 @@ document.querySelectorAll('.nav-link').forEach(link => {
         }
     });
 });
-
-// Add some CSS styles
-const style = document.createElement('style');
-style.textContent = `
-    .rating-item {
-        margin-bottom: 1rem;
-    }
-    .rating-item label {
-        display: block;
-        margin-bottom: 0.25rem;
-        font-weight: 500;
-        color: #495057;
-    }
-    .progress {
-        height: 1.5rem;
-        border-radius: 0.5rem;
-        background-color: #e9ecef;
-    }
-    .progress-bar {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: white;
-        text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-    }
-    .review-box {
-        border-left: 4px solid #6c757d;
-        background-color: #f8f9fa;
-    }
-    .card {
-        border: none;
-        transition: transform 0.2s;
-    }
-    .card:hover {
-        transform: translateY(-2px);
-    }
-    .card-header {
-        border-bottom: 1px solid rgba(0,0,0,.125);
-    }
-`;
-document.head.appendChild(style);
 </script>
 {% endblock %} 

@@ -3,15 +3,16 @@ YAŞAYIŞ SAHƏSİNİN KİRAYƏSİ HAQQINDA
 M Ü Q A V İ L Ə  № {{ ContractNo }}
 
 Bakı şəhəri
+
 {{ ContractDate }}-ci il
- 
-Biz aşağıda imza edənlər, bir tərəfdən bundan sonra Kirayəyə verən adlanacaq {{ LandlordLastName }} {{ LandlordFirstName }} {{ LandlordFatherName }} oğlu/qızı (Ş/V: {{ LandlordID }}, FİN: {LandlordFIN}), digər tərəfdən bundan sonra Kirayəçi adlanacaq {{ TenantLastName }} {{ TenantFirstName }} {{ TenantFatherName }} oğlu/qızı  (Ş/V: {{ TenantID }},  FİN: {TenantFIN}) bu müqaviləni aşağıdakı şərtlərlə bağladıq:
+
+Biz aşağıda imza edənlər, bir tərəfdən bundan sonra Kirayəyə verən adlanacaq {{ LandlordLastName }} {{ LandlordFirstName }} {{ LandlordFatherName }} oğlu/qızı (Ş/V: {{ LandlordID }}, FİN: {{LandlordFIN}}), digər tərəfdən bundan sonra Kirayəçi adlanacaq {{ TenantLastName }} {{ TenantFirstName }} {{ TenantFatherName }} oğlu/qızı  (Ş/V: {{ TenantID }},  FİN: {{TenantFIN}}) bu müqaviləni aşağıdakı şərtlərlə bağladıq:
 
 
 1. MÜQAVİLƏNİN PREDMETİ
 
-1.1. Bu müqavilə ilə nəzərdə tutulmuş şərtlərlə Kirayə yəverən 1.2-ci bənddə göstərilmiş ”Azərbaycan Respublikasının Daşınmaz Əmlakın Dövlət Reyestri Xidmətinin hüquqların dövlət qeydiyyatı haqqında daşınmaz əmlakın dövlət reyestrindən verilmiş MH seriyalı {PropertyRegisrtyNumber} saylı çıxarışa əsasən mülkiyyətində olan mənzili yaşayış sahəsi qismində istifadə edilməsi üçün Kirayəçinin istifadəsinə verməyi, Kirayəçi isə bunun qarşılığında hər ay {{ RentAmount }} manat məbləğində kirayə haqqını ödəməyi öhdəsinə götürür.
-1.2. Kirayə predmeti {{ PropertyAddress }} ünvanında yerləşir və ümumi sahəsi {PropertyArea} kv.m. təşkil edir.
+1.1. Bu müqavilə ilə nəzərdə tutulmuş şərtlərlə Kirayə yəverən 1.2-ci bənddə göstərilmiş ”Azərbaycan Respublikasının Daşınmaz Əmlakın Dövlət Reyestri Xidmətinin hüquqların dövlət qeydiyyatı haqqında daşınmaz əmlakın dövlət reyestrindən verilmiş MH seriyalı {{PropertyRegisrtyNumber}} saylı çıxarışa əsasən mülkiyyətində olan mənzili yaşayış sahəsi qismində istifadə edilməsi üçün Kirayəçinin istifadəsinə verməyi, Kirayəçi isə bunun qarşılığında hər ay {{ RentAmount }} manat məbləğində kirayə haqqını ödəməyi öhdəsinə götürür.
+1.2. Kirayə predmeti {{ PropertyAddress }} ünvanında yerləşir və ümumi sahəsi {{PropertyArea}} təşkil edir.
 
 2. ÖDƏNİŞLƏR
 

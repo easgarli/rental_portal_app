@@ -48,18 +48,63 @@ def contracts():
         tenant_id=current_user.id,
         status='approved'
     ).all()
-    return render_template('tenant/contracts.html', contracts=contracts)
+    
+    # Group contracts by status
+    grouped_contracts = {
+        'pending_signatures': [],
+        'active': [],
+        'completed': [],
+        'terminated': [],
+        'draft': []
+    }
+    
+    for contract in contracts:
+        status = contract.contract_status or 'draft'
+        grouped_contracts[status].append(contract)
+    
+    # Sort each group by creation date
+    for status in grouped_contracts:
+        grouped_contracts[status].sort(key=lambda x: x.created_at, reverse=True)
+    
+    return render_template('tenant/contracts.html', 
+                         grouped_contracts=grouped_contracts,
+                         total_contracts=len(contracts))
 
 @tenant_bp.route('/tenant/ratings')
 @login_required
 @tenant_required
 def ratings():
-    tenant_score = TenantScore.query.filter_by(tenant_id=current_user.id).first()
-    latest_questionnaire = current_user.questionnaire[0] if current_user.questionnaire else None
-    
     # Get both received and given ratings
     received_ratings = Rating.query.filter_by(ratee_id=current_user.id).all()
     given_ratings = Rating.query.filter_by(rater_id=current_user.id).all()
+    
+    # Get or create tenant score
+    tenant_score = TenantScore.query.filter_by(tenant_id=current_user.id).first()
+    
+    if received_ratings and not tenant_score:
+        # Calculate scores from ratings
+        payment_score = sum(r.reliability for r in received_ratings if r.reliability) / len([r for r in received_ratings if r.reliability]) * 20
+        property_score = sum(r.responsibility for r in received_ratings if r.responsibility) / len([r for r in received_ratings if r.responsibility]) * 20
+        rental_history_score = sum(r.communication for r in received_ratings if r.communication) / len([r for r in received_ratings if r.communication]) * 20
+        neighbor_score = sum(r.respect for r in received_ratings if r.respect) / len([r for r in received_ratings if r.respect]) * 20
+        contract_score = sum(r.compliance for r in received_ratings if r.compliance) / len([r for r in received_ratings if r.compliance]) * 20
+        
+        total_score = (payment_score + property_score + rental_history_score + neighbor_score + contract_score) / 5
+        
+        # Create new tenant score
+        tenant_score = TenantScore(
+            tenant_id=current_user.id,
+            payment_score=payment_score,
+            property_score=property_score,
+            rental_history_score=rental_history_score,
+            neighbor_score=neighbor_score,
+            contract_score=contract_score,
+            total_score=total_score
+        )
+        db.session.add(tenant_score)
+        db.session.commit()
+    
+    latest_questionnaire = current_user.questionnaire[0] if current_user.questionnaire else None
     
     return render_template('tenant/ratings.html',
                          tenant_score=tenant_score,

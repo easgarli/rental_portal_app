@@ -147,13 +147,18 @@ class TenantScore(db.Model):
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     
-    # Component scores
-    payment_score = db.Column(NUMERIC(5, 2), default=0)
-    property_score = db.Column(NUMERIC(5, 2), default=0)
-    rental_history_score = db.Column(NUMERIC(5, 2), default=0)
-    neighbor_score = db.Column(NUMERIC(5, 2), default=0)
-    contract_score = db.Column(NUMERIC(5, 2), default=0)
+    # Component scores (0-5 scale)
+    payment_score = db.Column(NUMERIC(5, 2), default=0)  # Ödəniş intizamı
+    property_score = db.Column(NUMERIC(5, 2), default=0)  # Əmlaka münasibət
+    rental_history_score = db.Column(NUMERIC(5, 2), default=0)  # Əvvəlki icarə tarixçəsi
+    neighbor_score = db.Column(NUMERIC(5, 2), default=0)  # Qonşularla və bina qaydalarına uyğunluq
+    contract_score = db.Column(NUMERIC(5, 2), default=0)  # Müqavilə şərtlərinə uyğunluq
+    
+    # Final score (0-100 scale)
     total_score = db.Column(NUMERIC(5, 2), default=0)
+    
+    # Score interpretation
+    score_category = db.Column(db.String(50), default='Yüksək riskli icarədar')
     
     # Detailed history
     payment_history = db.Column(JSONB)
@@ -168,16 +173,17 @@ class TenantScore(db.Model):
     tenant = db.relationship('User', back_populates='tenant_score')
 
     def calculate_total_score(self):
-        """Calculate weighted total score"""
+        """Calculate weighted total score and convert to 100 scale"""
         weights = {
-            'payment': 0.30,
-            'property': 0.25,
-            'history': 0.20,
-            'neighbor': 0.15,
-            'contract': 0.10
+            'payment': 0.30,  # Ödəniş intizamı
+            'property': 0.25,  # Əmlaka münasibət
+            'history': 0.20,  # Əvvəlki icarə tarixçəsi
+            'neighbor': 0.15,  # Qonşularla və bina qaydalarına uyğunluq
+            'contract': 0.10   # Müqavilə şərtlərinə uyğunluq
         }
         
-        self.total_score = (
+        # Calculate weighted average (0-5 scale)
+        weighted_avg = (
             self.payment_score * weights['payment'] +
             self.property_score * weights['property'] +
             self.rental_history_score * weights['history'] +
@@ -185,157 +191,68 @@ class TenantScore(db.Model):
             self.contract_score * weights['contract']
         )
         
+        # Convert to 100 scale
+        self.total_score = (weighted_avg / 5) * 100
+        
+        # Determine score category
+        if self.total_score >= 90:
+            self.score_category = 'Çox etibarlı icarədar'
+        elif self.total_score >= 75:
+            self.score_category = 'Yaxşı icarədar'
+        elif self.total_score >= 50:
+            self.score_category = 'Orta riskli icarədar'
+        else:
+            self.score_category = 'Yüksək riskli icarədar'
+        
         return self.total_score
 
-    def update_scores(self):
-        """Update all component scores based on recent data"""
-        # Update payment score
-        recent_payments = Payment.query.filter_by(
-            contract_id=self.contract_id,
-            status='completed'
-        ).order_by(Payment.due_date.desc()).limit(24).all()
-        
-        self.payment_score = self._calculate_payment_score(recent_payments)
-        
-        # Update property score
-        recent_damages = PropertyDamage.query.filter_by(
-            tenant_id=self.tenant_id
-        ).order_by(PropertyDamage.created_at.desc()).all()
-        
-        self.property_score = self._calculate_property_score(recent_damages)
-        
-        # Update rental history score
-        recent_ratings = Rating.query.filter_by(
-            ratee_id=self.tenant_id
-        ).order_by(Rating.created_at.desc()).all()
-        
-        self.rental_history_score = self._calculate_rental_score(recent_ratings)
-        
-        # Update neighbor score
-        recent_complaints = Complaint.query.filter_by(
-            tenant_id=self.tenant_id
-        ).order_by(Complaint.created_at.desc()).all()
-        
-        self.neighbor_score = self._calculate_neighbor_score(recent_complaints)
-        
-        # Update contract score
-        recent_violations = ContractViolation.query.filter_by(
-            tenant_id=self.tenant_id
-        ).order_by(ContractViolation.created_at.desc()).all()
-        
-        self.contract_score = self._calculate_contract_score(recent_violations)
-        
-        # Calculate and save total score
-        self.calculate_total_score()
-        db.session.commit()
-
-    def _calculate_payment_score(self, payments):
-        """Calculate payment score based on payment history"""
-        if not payments:
-            return 0
-            
-        base_score = 100
-        deductions = 0
-        
-        for payment in payments:
-            if payment.status == 'completed':
-                if payment.due_date < payment.updated_at:
-                    days_late = (payment.updated_at - payment.due_date).days
-                    if days_late <= 3:
-                        deductions += 25
-                    elif days_late <= 7:
-                        deductions += 50
-                    elif days_late <= 15:
-                        deductions += 75
-                    else:
-                        deductions += 100
-            elif payment.status == 'failed':
-                deductions += 20
-        
-        return max(0, base_score - deductions)
-
-    def _calculate_property_score(self, damages):
-        """Calculate property care score based on damage history"""
-        if not damages:
-            return 100
-            
-        base_score = 100
-        deductions = 0
-        bonuses = 0
-        
-        for damage in damages:
-            if damage.severity == 'minor':
-                deductions += 25
-            elif damage.severity == 'moderate':
-                deductions += 50
-            elif damage.severity == 'major':
-                deductions += 75
-            else:  # severe
-                deductions += 100
-        
-        return max(0, base_score - deductions + bonuses)
-
-    def _calculate_rental_score(self, ratings):
-        """Calculate rental history score based on ratings"""
+    @staticmethod
+    def calculate_component_scores(ratings):
+        """Calculate component scores from ratings"""
         if not ratings:
-            return 0
-            
-        # Calculate average rating
-        avg_rating = sum(
-            (r.reliability + r.responsibility + r.communication + 
-             r.respect + r.compliance) / 5.0
-            for r in ratings
-        ) / len(ratings)
+            return {
+                'payment_score': 0,
+                'property_score': 0,
+                'rental_history_score': 0,
+                'neighbor_score': 0,
+                'contract_score': 0
+            }
         
-        base_score = avg_rating * 20  # Convert 0-5 to 0-100
+        # Initialize score sums and counts
+        scores = {
+            'payment': {'sum': 0, 'count': 0},
+            'property': {'sum': 0, 'count': 0},
+            'history': {'sum': 0, 'count': 0},
+            'neighbor': {'sum': 0, 'count': 0},
+            'contract': {'sum': 0, 'count': 0}
+        }
         
-        # Add points for rental duration
-        if len(ratings) >= 6:
-            base_score += 20
-        elif len(ratings) >= 3:
-            base_score += 10
-            
-        return max(0, min(100, base_score))
-
-    def _calculate_neighbor_score(self, complaints):
-        """Calculate neighbor compliance score based on complaints"""
-        if not complaints:
-            return 100
-            
-        base_score = 100
-        deductions = 0
+        # Sum up ratings for each component
+        for rating in ratings:
+            if rating.payment_score:
+                scores['payment']['sum'] += rating.payment_score
+                scores['payment']['count'] += 1
+            if rating.property_score:
+                scores['property']['sum'] += rating.property_score
+                scores['property']['count'] += 1
+            if rating.history_score:
+                scores['history']['sum'] += rating.history_score
+                scores['history']['count'] += 1
+            if rating.neighbor_score:
+                scores['neighbor']['sum'] += rating.neighbor_score
+                scores['neighbor']['count'] += 1
+            if rating.contract_score:
+                scores['contract']['sum'] += rating.contract_score
+                scores['contract']['count'] += 1
         
-        for complaint in complaints:
-            if complaint.severity == 'minor':
-                deductions += 25
-            elif complaint.severity == 'moderate':
-                deductions += 50
-            elif complaint.severity == 'serious':
-                deductions += 75
-            else:  # eviction
-                deductions += 100
-        
-        return max(0, base_score - deductions)
-
-    def _calculate_contract_score(self, violations):
-        """Calculate contract compliance score based on violations"""
-        if not violations:
-            return 100
-            
-        base_score = 100
-        deductions = 0
-        
-        for violation in violations:
-            if violation.severity == 'minor':
-                deductions += 25
-            elif violation.severity == 'moderate':
-                deductions += 50
-            elif violation.severity == 'major':
-                deductions += 75
-            else:  # termination
-                deductions += 100
-        
-        return max(0, base_score - deductions)
+        # Calculate averages
+        return {
+            'payment_score': scores['payment']['sum'] / scores['payment']['count'] if scores['payment']['count'] > 0 else 0,
+            'property_score': scores['property']['sum'] / scores['property']['count'] if scores['property']['count'] > 0 else 0,
+            'rental_history_score': scores['history']['sum'] / scores['history']['count'] if scores['history']['count'] > 0 else 0,
+            'neighbor_score': scores['neighbor']['sum'] / scores['neighbor']['count'] if scores['neighbor']['count'] > 0 else 0,
+            'contract_score': scores['contract']['sum'] / scores['contract']['count'] if scores['contract']['count'] > 0 else 0
+        }
 
 class TenantQuestionnaire(db.Model):
     __tablename__ = 'tenant_questionnaires'
@@ -518,4 +435,11 @@ def update_tenant_score_after_violation(mapper, connection, target):
     tenant_score = TenantScore.query.filter_by(tenant_id=target.tenant_id).first()
     if tenant_score:
         tenant_score.update_scores()
+        db.session.commit()
+
+@event.listens_for(RentalApplication, 'after_update')
+def update_contract_status_after_signatures(mapper, connection, target):
+    """Update contract status when both parties have signed"""
+    if target.tenant_signature and target.landlord_signature and target.contract_status != 'active':
+        target.contract_status = 'active'
         db.session.commit()

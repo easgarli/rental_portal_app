@@ -45,7 +45,7 @@
         <div class="card-body">
             <h2 class="text-center mb-4">YAŞAYIŞ SAHƏSİNİN KİRAYƏSİ HAQQINDA MÜQAVİLƏ</h2>
             <div class="text-center mb-4">
-                <span class="badge bg-primary status-badge">Status: {{ application.status }}</span>
+                <span class="badge bg-primary status-badge">Status: {{ application.contract_status }}</span>
             </div>
         </div>
     </div>
@@ -168,6 +168,11 @@
                 {% if application.landlord_signature %}
                     <div class="alert alert-success">
                         <i class="fas fa-check-circle"></i> İmzalanıb
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                İmza tarixi: {{ application.landlord_signature.strftime('%d-%m-%Y %H:%M') }}
+                            </small>
+                        </div>
                     </div>
                 {% else %}
                     {% if current_user.role == 'landlord' %}
@@ -184,6 +189,11 @@
                 {% if application.tenant_signature %}
                     <div class="alert alert-success">
                         <i class="fas fa-check-circle"></i> İmzalanıb
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                İmza tarixi: {{ application.tenant_signature.strftime('%d-%m-%Y %H:%M') }}
+                            </small>
+                        </div>
                     </div>
                 {% else %}
                     {% if current_user.role == 'tenant' %}
@@ -198,10 +208,12 @@
         </div>
     </div>
 
-    {% if application.contract_status == 'completed' %}
+    {% if application.contract_data and application.contract_data.filename %}
     <div class="mt-4">
         <a href="{{ url_for('applications.download_contract', application_id=application.id) }}" 
-           class="btn btn-success">Müqaviləni yüklə (PDF)</a>
+           class="btn btn-success">
+            <i class="fas fa-file-pdf"></i> Müqaviləni yüklə (PDF)
+        </a>
     </div>
     {% endif %}
 </div>

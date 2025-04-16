@@ -22,7 +22,58 @@ class PropertyForm(FlaskForm):
 @login_required
 @landlord_required
 def dashboard():
-    return render_template('landlord/dashboard.html')
+    # Get property statistics
+    properties = Property.query.filter_by(landlord_id=current_user.id).all()
+    active_properties = len([p for p in properties if p.status == 'available'])
+    rented_properties = len([p for p in properties if p.status == 'rented'])
+    pending_properties = len([p for p in properties if p.status == 'pending'])
+    
+    # Get application statistics
+    property_ids = [p.id for p in properties]
+    applications = RentalApplication.query.filter(
+        RentalApplication.property_id.in_(property_ids)
+    ).all()
+    new_applications = len([a for a in applications if a.status == 'pending'])
+    active_contracts = len([a for a in applications if a.status == 'approved' and a.contract_status == 'active'])
+    
+    # Get rating statistics
+    received_ratings = Rating.query.filter_by(ratee_id=current_user.id).all()
+    if received_ratings:
+        reliability = sum(r.reliability for r in received_ratings) / len(received_ratings)
+        responsibility = sum(r.responsibility for r in received_ratings) / len(received_ratings)
+        communication = sum(r.communication for r in received_ratings) / len(received_ratings)
+        respect = sum(r.respect for r in received_ratings) / len(received_ratings)
+        compliance = sum(r.compliance for r in received_ratings) / len(received_ratings)
+        total_rating = (reliability + responsibility + communication + respect + compliance) / 5
+    else:
+        reliability = responsibility = communication = respect = compliance = total_rating = 0
+    
+    # Get recent activity
+    recent_activity = []
+    for app in applications[:5]:  # Get last 5 applications
+        recent_activity.append({
+            'type': 'application',
+            'property': app.rental_property.title,
+            'tenant': app.tenant.name,
+            'status': app.status,
+            'date': app.created_at
+        })
+    
+    return render_template('landlord/dashboard.html',
+                         active_properties=active_properties,
+                         rented_properties=rented_properties,
+                         pending_properties=pending_properties,
+                         new_applications=new_applications,
+                         active_contracts=active_contracts,
+                         total_rating=total_rating,
+                         rating_components={
+                             'reliability': reliability,
+                             'responsibility': responsibility,
+                             'communication': communication,
+                             'respect': respect,
+                             'compliance': compliance
+                         },
+                         recent_activity=recent_activity)
 
 @landlord_bp.route('/landlord/properties')
 @login_required
@@ -109,50 +160,29 @@ def contracts():
         RentalApplication.status == 'approved'
     ).all()
     
-    # Filter applications to only include those with contract_status
-    applications = [app for app in applications if app.contract_status is not None]
+    # Group contracts by status
+    grouped_contracts = {
+        'pending_signatures': [],
+        'active': [],
+        'completed': [],
+        'terminated': [],
+        'draft': []
+    }
+    
+    for app in applications:
+        status = app.contract_status or 'draft'
+        grouped_contracts[status].append(app)
+    
+    # Sort each group by creation date
+    for status in grouped_contracts:
+        grouped_contracts[status].sort(key=lambda x: x.created_at, reverse=True)
     
     # Get landlord's contract info
     landlord_info = UserContractInfo.query.filter_by(user_id=current_user.id).first()
     
-    # Prepare contract data
-    contracts = []
-    for app in applications:
-        # Check if property info is complete
-        property = app.rental_property
-        property_info_complete = all([
-            property.registry_number,
-            property.area,
-            property.contract_term
-        ])
-        
-        # Check if tenant info is complete
-        tenant_info = UserContractInfo.query.filter_by(user_id=app.tenant_id).first()
-        tenant_info_complete = bool(tenant_info)
-        
-        contracts.append({
-            'id': app.id,
-            'property': {
-                'id': property.id,
-                'title': property.title,
-                'address': property.address,
-                'info_complete': property_info_complete
-            },
-            'tenant': {
-                'id': app.tenant.id,
-                'name': app.tenant.name
-            },
-            'status': app.contract_status or 'draft',
-            'landlord_info_complete': bool(landlord_info),
-            'property_info_complete': property_info_complete,
-            'tenant_info_complete': tenant_info_complete,
-            'landlord_signature': bool(app.landlord_signature),
-            'tenant_signature': bool(app.tenant_signature),
-            'created_at': app.created_at
-        })
-    
     return render_template('landlord/contracts.html', 
-                         contracts=contracts,
+                         grouped_contracts=grouped_contracts,
+                         total_contracts=len(applications),
                          landlord_info=landlord_info)
 
 @landlord_bp.route('/landlord/ratings')

@@ -2,39 +2,229 @@
 
 {% block title %}Mülk Sahibi Paneli{% endblock %}
 
+{% block head %}
+<style>
+    .stats-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .stats-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .stats-card .card-title {
+        color: #495057;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .stats-card .card-title i {
+        margin-right: 0.5rem;
+        font-size: 1.3rem;
+    }
+    
+    .stats-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .stats-item:last-child {
+        border-bottom: none;
+    }
+    
+    .stats-label {
+        color: #6c757d;
+        font-size: 0.95rem;
+    }
+    
+    .stats-value {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #212529;
+    }
+    
+    .rating-gauge-container {
+        position: relative;
+        padding: 1rem;
+    }
+    
+    .rating-gauge-container .gauge-title {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #495057;
+        z-index: 1;
+    }
+    
+    .progress {
+        height: 1.25rem;
+        border-radius: 10px;
+        background-color: #f8f9fa;
+        margin-bottom: 0.75rem;
+    }
+    
+    .progress-bar {
+        border-radius: 10px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .activity-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .activity-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .activity-card .card-title {
+        color: #495057;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .activity-card .card-title i {
+        margin-right: 0.5rem;
+        font-size: 1.3rem;
+    }
+    
+    .list-group-item {
+        border: none;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        padding: 1rem;
+    }
+    
+    .list-group-item:last-child {
+        border-bottom: none;
+    }
+    
+    .badge {
+        padding: 0.5em 0.75em;
+        border-radius: 8px;
+        font-weight: 500;
+    }
+    
+    .alert-warning {
+        border-radius: 15px;
+        border: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container">
     <div class="row mb-4">
         <div class="col-md-4">
-            <div class="card">
+            <div class="card stats-card">
                 <div class="card-body">
-                    <h5 class="card-title">Əmlak Statistikası</h5>
+                    <h5 class="card-title">
+                        <i class="fas fa-home"></i>
+                        Əmlak Statistikası
+                    </h5>
                     <div class="stats">
-                        <p>Aktiv Əmlaklar: <span id="active-properties">0</span></p>
-                        <p>Kirayədə olan: <span id="rented-properties">0</span></p>
-                        <p>Gözləmədə olan: <span id="pending-properties">0</span></p>
+                        <div class="stats-item">
+                            <span class="stats-label">Aktiv Əmlaklar</span>
+                            <span class="stats-value">{{ active_properties }}</span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="stats-label">Kirayədə olan</span>
+                            <span class="stats-value">{{ rented_properties }}</span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="stats-label">Gözləmədə olan</span>
+                            <span class="stats-value">{{ pending_properties }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card">
+            <div class="card stats-card">
                 <div class="card-body">
-                    <h5 class="card-title">Müraciətlər</h5>
+                    <h5 class="card-title">
+                        <i class="fas fa-file-alt"></i>
+                        Müraciətlər
+                    </h5>
                     <div class="stats">
-                        <p>Yeni Müraciətlər: <span id="new-applications">0</span></p>
-                        <p>Aktiv Müqavilələr: <span id="active-contracts">0</span></p>
+                        <div class="stats-item">
+                            <span class="stats-label">Yeni Müraciətlər</span>
+                            <span class="stats-value">{{ new_applications }}</span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="stats-label">Aktiv Müqavilələr</span>
+                            <span class="stats-value">{{ active_contracts }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card">
+            <div class="card stats-card">
                 <div class="card-body">
-                    <h5 class="card-title">Reytinq</h5>
+                    <h5 class="card-title">
+                        <i class="fas fa-star"></i>
+                        Reytinq
+                    </h5>
                     <div id="landlord-rating">
-                        <canvas id="landlord-rating-gauge"></canvas>
-                        <div id="rating-value" class="text-center mt-3"></div>
+                        <div class="rating-gauge-container">
+                            <div id="landlord-rating-gauge" style="width: 100%; height: 200px;"></div>
+                        </div>
+                        <div class="rating-components mt-4">
+                            <div class="progress">
+                                <div class="progress-bar bg-success" role="progressbar" 
+                                     style="width: {{ rating_components.reliability * 20 }}%">
+                                    Etibarlılıq: {{ "%.1f"|format(rating_components.reliability) }}
+                                </div>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-info" role="progressbar" 
+                                     style="width: {{ rating_components.responsibility * 20 }}%">
+                                    Məsuliyyət: {{ "%.1f"|format(rating_components.responsibility) }}
+                                </div>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-warning" role="progressbar" 
+                                     style="width: {{ rating_components.communication * 20 }}%">
+                                    Əlaqə: {{ "%.1f"|format(rating_components.communication) }}
+                                </div>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-primary" role="progressbar" 
+                                     style="width: {{ rating_components.respect * 20 }}%">
+                                    Hörmət: {{ "%.1f"|format(rating_components.respect) }}
+                                </div>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-secondary" role="progressbar" 
+                                     style="width: {{ rating_components.compliance * 20 }}%">
+                                    Uyğunluq: {{ "%.1f"|format(rating_components.compliance) }}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -43,11 +233,39 @@
 
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
+            <div class="card activity-card">
                 <div class="card-body">
-                    <h5 class="card-title">Son Aktivlik</h5>
+                    <h5 class="card-title">
+                        <i class="fas fa-history"></i>
+                        Son Aktivlik
+                    </h5>
                     <div id="recent-activity">
-                        <!-- Activity will be loaded here -->
+                        {% if recent_activity %}
+                            <div class="list-group">
+                                {% for activity in recent_activity %}
+                                    <div class="list-group-item">
+                                        <div class="d-flex w-100 justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1">{{ activity.property }}</h6>
+                                                <p class="mb-1 text-muted">
+                                                    {{ activity.tenant }} tərəfindən yeni müraciət
+                                                </p>
+                                            </div>
+                                            <div class="text-right">
+                                                <small class="text-muted">{{ activity.date.strftime('%Y-%m-%d %H:%M') }}</small>
+                                                <div class="mt-2">
+                                                    <span class="badge badge-{{ 'success' if activity.status == 'approved' else 'warning' }}">
+                                                        {{ activity.status }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted">Hələ heç bir aktivlik yoxdur.</p>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -56,7 +274,8 @@
 </div>
 
 {% if not current_user.contract_info %}
-    <div class="alert alert-warning">
+    <div class="alert alert-warning mt-4">
+        <i class="fas fa-exclamation-triangle mr-2"></i>
         Müqavilə məlumatlarınız tamamlanmayıb. 
         <a href="{{ url_for('applications.new_landlord_info') }}" class="alert-link">
             Məlumatları tamamlayın
@@ -64,8 +283,90 @@
     </div>
 {% endif %}
 
-<script src="https://bernii.github.io/gauge.js/dist/gauge.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<script src="https://kit.fontawesome.com/a076d05399.js"></script>
 <script>
-// Add your existing gauge initialization and data loading code here
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize rating gauge
+    const ratingGauge = echarts.init(document.getElementById('landlord-rating-gauge'));
+    
+    const ratingOption = {
+        series: [{
+            type: 'gauge',
+            startAngle: 180,
+            endAngle: 0,
+            min: 0,
+            max: 5,
+            splitNumber: 5,
+            radius: '100%',
+            axisLine: {
+                lineStyle: {
+                    width: 30,
+                    color: [
+                        [0.2, '#dc3545'],
+                        [0.4, '#ffc107'],
+                        [0.6, '#17a2b8'],
+                        [0.8, '#28a745'],
+                        [1, '#007bff']
+                    ]
+                }
+            },
+            pointer: {
+                icon: 'path://M12.8,0.7l12,40.1H0.7L12.8,0.7z',
+                length: '12%',
+                width: 20,
+                offsetCenter: [0, '-60%'],
+                itemStyle: {
+                    color: 'auto'
+                }
+            },
+            axisTick: {
+                length: 12,
+                lineStyle: {
+                    color: 'auto',
+                    width: 1
+                }
+            },
+            splitLine: {
+                length: 20,
+                lineStyle: {
+                    color: 'auto',
+                    width: 2
+                }
+            },
+            axisLabel: {
+                color: '#464646',
+                fontSize: 12,
+                distance: 25,
+                formatter: function(value) {
+                    return value;
+                }
+            },
+            title: {
+                offsetCenter: [0, '-20%'],
+                fontSize: 20
+            },
+            detail: {
+                fontSize: 30,
+                offsetCenter: [0, '0%'],
+                valueAnimation: true,
+                formatter: function(value) {
+                    return value.toFixed(1);
+                },
+                color: 'auto'
+            },
+            data: [{
+                value: {{ total_rating }}
+            }]
+        }]
+    };
+    
+    ratingGauge.setOption(ratingOption);
+    
+    // Handle window resize
+    window.addEventListener('resize', function() {
+        ratingGauge.resize();
+    });
+});
 </script>
 {% endblock %} 

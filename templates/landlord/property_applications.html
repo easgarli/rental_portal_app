@@ -19,7 +19,7 @@
                 {% for application in applications %}
                     <div class="card mb-3">
                         <div class="card-body">
-                            <h5 class="card-title">{{ application.tenant_user.name }}</h5>
+                            <h5 class="card-title">{{ application.tenant.name }}</h5>
                             <p class="card-text">
                                 <strong>Status:</strong> 
                                 <span class="badge {% if application.status == 'approved' %}bg-success

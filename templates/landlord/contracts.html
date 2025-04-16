@@ -1,161 +1,106 @@
 {% extends "base.html" %}
 
-{% block title %}Müqavilələr{% endblock %}
+{% block title %}Müqavilələrim{% endblock %}
 
 {% block content %}
 <div class="container">
     <div class="row mb-4">
         <div class="col">
-            <h2>Müqavilələr</h2>
+            <h2>Müqavilələrim</h2>
+            <p class="text-muted">Cəmi {{ total_contracts }} müqavilə</p>
         </div>
     </div>
 
     <div class="row">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-body">
-                    {% if contracts %}
-                        {% for contract in contracts %}
-                            <div class="card mb-3">
-                                <div class="card-body">
-                                    <h5 class="card-title">{{ contract.property.title }}</h5>
-                                    <p class="card-text">
-                                        <strong>Ünvan:</strong> {{ contract.property.address }}<br>
-                                        <strong>Müqavilə statusu:</strong> 
-                                        <span class="badge {% if contract.status == 'pending_signatures' %}bg-warning
-                                                          {% elif contract.status == 'active' %}bg-success
-                                                          {% elif contract.status == 'completed' %}bg-info
-                                                          {% elif contract.status == 'terminated' %}bg-danger
-                                                          {% else %}bg-secondary{% endif %}">
-                                            {% if contract.status == 'pending_signatures' %}İmza gözləyir
-                                            {% elif contract.status == 'active' %}Aktiv
-                                            {% elif contract.status == 'completed' %}Başa çatıb
-                                            {% elif contract.status == 'terminated' %}Ləğv edilib
-                                            {% else %}Hazırlanır{% endif %}
+        <div class="col">
+            {% if total_contracts > 0 %}
+                <div class="accordion" id="contractsAccordion">
+                    {% for status, contracts in grouped_contracts.items() %}
+                        {% if contracts %}
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="heading{{ status }}">
+                                    <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" 
+                                            type="button" 
+                                            data-bs-toggle="collapse" 
+                                            data-bs-target="#collapse{{ status }}"
+                                            aria-expanded="{{ 'true' if loop.first else 'false' }}"
+                                            aria-controls="collapse{{ status }}">
+                                        <span class="badge {% if status == 'pending_signatures' %}bg-warning
+                                                          {% elif status == 'active' %}bg-success
+                                                          {% elif status == 'completed' %}bg-info
+                                                          {% elif status == 'terminated' %}bg-danger
+                                                          {% else %}bg-secondary{% endif %} me-2">
+                                            {{ contracts|length }}
                                         </span>
-                                    </p>
+                                        {% if status == 'pending_signatures' %}İmza gözləyən müqavilələr
+                                        {% elif status == 'active' %}Aktiv müqavilələr
+                                        {% elif status == 'completed' %}Başa çatmış müqavilələr
+                                        {% elif status == 'terminated' %}Ləğv edilmiş müqavilələr
+                                        {% else %}Hazırlanan müqavilələr{% endif %}
+                                    </button>
+                                </h2>
+                                <div id="collapse{{ status }}" 
+                                     class="accordion-collapse collapse {% if loop.first %}show{% endif %}"
+                                     aria-labelledby="heading{{ status }}"
+                                     data-bs-parent="#contractsAccordion">
+                                    <div class="accordion-body">
+                                        {% for contract in contracts %}
+                                            <div class="card mb-3">
+                                                <div class="card-body">
+                                                    <h5 class="card-title">{{ contract.rental_property.title }}</h5>
+                                                    <p class="card-text">
+                                                        <strong>Ünvan:</strong> {{ contract.rental_property.address }}<br>
+                                                        <strong>Kirayəçi:</strong> {{ contract.tenant.name }}<br>
+                                                        <strong>Başlama tarixi:</strong> {{ contract.created_at.strftime('%d-%m-%Y') }}
+                                                    </p>
 
-                                    <!-- Contract Process Steps -->
-                                    <div class="contract-process mb-3">
-                                        <h6>Müqavilə Hazırlıq Mərhələləri:</h6>
-                                        <div class="steps">
-                                            <!-- Step 1: Landlord Info -->
-                                            <div class="step {% if contract.landlord_info_complete %}completed{% else %}pending{% endif %}">
-                                                <div class="step-number">1</div>
-                                                <div class="step-content">
-                                                    <h6>Mülk Sahibinin Məlumatları</h6>
-                                                    {% if contract.landlord_info_complete %}
-                                                        <span class="text-success"><i class="fas fa-check-circle"></i> Tamamlandı</span>
-                                                    {% else %}
-                                                        <a href="{{ url_for('applications.manage_landlord_info', application_id=contract.id) }}" class="btn btn-sm btn-primary">
-                                                            <i class="fas fa-edit"></i> Məlumatları daxil et
-                                                        </a>
-                                                    {% endif %}
-                                                </div>
-                                            </div>
+                                                    <div class="mt-3">
+                                                        <div class="btn-group" role="group">
+                                                            {% if contract.contract_status == 'pending_signatures' and not contract.landlord_signature %}
+                                                                <button class="btn btn-primary" onclick="signContract('{{ contract.id }}')">
+                                                                    <i class="fas fa-signature"></i> Müqaviləni imzala
+                                                                </button>
+                                                            {% elif not contract.contract_status %}
+                                                                <a href="{{ url_for('applications.manage_contract', application_id=contract.id) }}" 
+                                                                   class="btn btn-primary">
+                                                                    <i class="fas fa-file-contract"></i> Müqavilə yarat
+                                                                </a>
+                                                            {% endif %}
 
-                                            <!-- Step 2: Property Info -->
-                                            <div class="step {% if contract.property_info_complete %}completed{% else %}pending{% endif %}">
-                                                <div class="step-number">2</div>
-                                                <div class="step-content">
-                                                    <h6>Əmlak Məlumatları</h6>
-                                                    {% if contract.property_info_complete %}
-                                                        <span class="text-success"><i class="fas fa-check-circle"></i> Tamamlandı</span>
-                                                    {% else %}
-                                                        <a href="{{ url_for('applications.manage_property_info', application_id=contract.id) }}" class="btn btn-sm btn-primary">
-                                                            <i class="fas fa-edit"></i> Məlumatları daxil et
-                                                        </a>
-                                                    {% endif %}
-                                                </div>
-                                            </div>
+                                                            {% if contract.contract_data and contract.contract_data.filename %}
+                                                                <a href="{{ url_for('applications.download_contract', application_id=contract.id) }}" 
+                                                                   class="btn btn-info">
+                                                                    <i class="fas fa-download"></i> Müqaviləni yüklə
+                                                                </a>
+                                                            {% endif %}
 
-                                            <!-- Step 3: Tenant Info -->
-                                            <div class="step {% if contract.tenant_info_complete %}completed{% else %}pending{% endif %}">
-                                                <div class="step-number">3</div>
-                                                <div class="step-content">
-                                                    <h6>Kirayəçinin Məlumatları</h6>
-                                                    {% if contract.tenant_info_complete %}
-                                                        <span class="text-success"><i class="fas fa-check-circle"></i> Tamamlandı</span>
-                                                    {% else %}
-                                                        <span class="text-muted">Kirayəçi məlumatları gözlənilir</span>
-                                                    {% endif %}
-                                                </div>
-                                            </div>
+                                                            <a href="{{ url_for('applications.manage_contract', application_id=contract.id) }}" 
+                                                               class="btn btn-secondary">
+                                                                <i class="fas fa-eye"></i> Müqaviləyə bax
+                                                            </a>
 
-                                            <!-- Step 4: Generate Contract -->
-                                            <div class="step {% if contract.status == 'pending_signatures' %}completed{% else %}pending{% endif %}">
-                                                <div class="step-number">4</div>
-                                                <div class="step-content">
-                                                    <h6>Müqavilə Hazırlanması</h6>
-                                                    {% if contract.status == 'pending_signatures' %}
-                                                        <span class="text-success"><i class="fas fa-check-circle"></i> Hazırdır</span>
-                                                    {% elif contract.landlord_info_complete and contract.property_info_complete and contract.tenant_info_complete %}
-                                                        <a href="{{ url_for('applications.generate_contract', application_id=contract.id) }}" class="btn btn-sm btn-success">
-                                                            <i class="fas fa-file-contract"></i> Müqaviləni hazırla
-                                                        </a>
-                                                    {% else %}
-                                                        <span class="text-muted">Əvvəlki mərhələlər tamamlanmalıdır</span>
-                                                    {% endif %}
-                                                </div>
-                                            </div>
-
-                                            <!-- Step 5: Signatures -->
-                                            <div class="step {% if contract.status == 'active' %}completed{% else %}pending{% endif %}">
-                                                <div class="step-number">5</div>
-                                                <div class="step-content">
-                                                    <h6>İmzalar</h6>
-                                                    {% if contract.status == 'active' %}
-                                                        <span class="text-success"><i class="fas fa-check-circle"></i> Tamamlandı</span>
-                                                    {% elif contract.status == 'pending_signatures' %}
-                                                        <div class="signature-status">
-                                                            <p>Mülk sahibi: {% if contract.landlord_signature %}
-                                                                <span class="text-success">✓ İmzalanıb</span>
-                                                            {% else %}
-                                                                <span class="text-warning">Gözləyir</span>
-                                                            {% endif %}</p>
-                                                            <p>İcarəçi: {% if contract.tenant_signature %}
-                                                                <span class="text-success">✓ İmzalanıb</span>
-                                                            {% else %}
-                                                                <span class="text-warning">Gözləyir</span>
-                                                            {% endif %}</p>
+                                                            {% if contract.contract_status == 'active' %}
+                                                                <a href="{{ url_for('ratings.rate_tenant', tenant_id=contract.tenant_id, contract_id=contract.id) }}" 
+                                                                   class="btn btn-success">
+                                                                    <i class="fas fa-star"></i> Kirayəçini Qiymətləndir
+                                                                </a>
+                                                            {% endif %}
                                                         </div>
-                                                        <span class="text-muted">Müqavilə hazırlanmalıdır</span>
-                                                    {% endif %}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Contract Actions -->
-                                    <div class="mt-3">
-                                        <div class="btn-group" role="group">
-                                            {% if contract.status == 'pending_signatures' and not contract.landlord_signature %}
-                                                <button class="btn btn-primary" onclick="signContract('{{ contract.id }}')">
-                                                    <i class="fas fa-signature"></i> Müqaviləni imzala
-                                                </button>
-                                            {% endif %}
-
-                                            <a href="{{ url_for('applications.manage_contract', application_id=contract.id) }}" 
-                                               class="btn btn-secondary">
-                                                <i class="fas fa-eye"></i> Müqaviləyə bax
-                                            </a>
-
-                                            {% if contract.status == 'active' %}
-                                                <a href="{{ url_for('ratings.rate_tenant', tenant_id=contract.tenant.id, contract_id=contract.id) }}" 
-                                                   class="btn btn-success">
-                                                    <i class="fas fa-star"></i> İcarəçini Qiymətləndir
-                                                </a>
-                                            {% endif %}
-                                        </div>
+                                        {% endfor %}
                                     </div>
                                 </div>
                             </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="alert alert-info">Hal-hazırda aktiv müqavilə yoxdur</div>
-                    {% endif %}
+                        {% endif %}
+                    {% endfor %}
                 </div>
-            </div>
+            {% else %}
+                <div class="alert alert-info">
+                    Hal-hazırda aktiv müqaviləniz yoxdur.
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -167,7 +112,7 @@ async function signContract(applicationId) {
     }
 
     try {
-        const response = await fetch(`/applications/${applicationId}/contract`, {
+        const response = await fetch(`/applications/${applicationId}/contract/sign`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -175,73 +120,16 @@ async function signContract(applicationId) {
             }
         });
 
-        const result = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(result.error || 'Müqaviləni imzalamaq mümkün olmadı');
-        }
-
-        if (result.success) {
-            alert('Müqavilə uğurla imzalandı');
+        if (response.ok) {
             window.location.reload();
         } else {
-            alert(result.message || 'Xəta baş verdi');
+            const data = await response.json();
+            alert(data.error || 'Xəta baş verdi');
         }
     } catch (error) {
         console.error('Error:', error);
-        alert(error.message);
+        alert('Xəta baş verdi');
     }
 }
 </script>
-
-<style>
-.contract-process {
-    margin: 20px 0;
-}
-
-.steps {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.step {
-    display: flex;
-    align-items: flex-start;
-    padding: 15px;
-    border-radius: 8px;
-    background-color: #f8f9fa;
-    border-left: 4px solid #dee2e6;
-}
-
-.step.completed {
-    border-left-color: #28a745;
-    background-color: #e8f5e9;
-}
-
-.step.pending {
-    border-left-color: #ffc107;
-    background-color: #fff8e1;
-}
-
-.step-number {
-    width: 30px;
-    height: 30px;
-    background-color: #fff;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 15px;
-    font-weight: bold;
-}
-
-.step-content {
-    flex: 1;
-}
-
-.signature-status {
-    margin-top: 10px;
-}
-</style>
 {% endblock %} 
