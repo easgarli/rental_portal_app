@@ -25,19 +25,24 @@ def admin_dashboard():
 @login_required
 @admin_required
 def get_users():
-    users = User.query.all()
-    return jsonify([{
-        'id': user.id,
-        'name': user.name,
-        'email': user.email,
-        'role': user.role,
-        'created_at': user.created_at.isoformat(),
-        'ratings_received': len(user.ratings_received),
-        'ratings_given': len(user.ratings_given),
-        'tenant_score': user.tenant_score.total_score if user.tenant_score else None,
-        'properties_count': len(user.properties) if hasattr(user, 'properties') else 0,
-        'avg_rating': calculate_avg_rating(user.ratings_received) if user.ratings_received else 0
-    } for user in users])
+    """Get all users with their details"""
+    try:
+        users = User.query.all()
+        return jsonify([{
+            'id': user.id,
+            'name': user.name,
+            'email': user.email,
+            'role': user.role,
+            'created_at': user.created_at.isoformat(),
+            'tenant_score': float(user.tenant_score[0].total_score) if user.tenant_score and user.tenant_score[0].total_score is not None else 0.0,
+            'ratings_received': len(user.ratings_received),
+            'ratings_given': len(user.ratings_given),
+            'avg_rating': calculate_avg_rating(user.ratings_received) if user.ratings_received else 0,
+            'properties_count': len(user.owned_properties) if hasattr(user, 'owned_properties') else 0
+        } for user in users])
+    except Exception as e:
+        current_app.logger.error(f"Error getting users: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 def calculate_avg_rating(ratings):
     """Calculate average rating from all rating dimensions"""
